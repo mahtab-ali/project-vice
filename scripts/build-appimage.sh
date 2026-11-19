@@ -95,10 +95,23 @@ for nss_module in libsoftokn3.so libfreebl3.so libfreeblpriv3.so libnssckbi.so; 
     fi
 done
 
+# vice hook: the Vice build installs its own program and desktop entry
+if [ -f "${appdir}/usr/bin/project-vice" ]; then
+    APP_BIN=project-vice
+    APP_DESKTOP=project-vice.desktop
+    APP_IMAGE=ProjectVice.AppImage
+    # Name the result directly; the default name is made from the desktop entry
+    export LDAI_OUTPUT="${APP_IMAGE}"
+    export OUTPUT="${APP_IMAGE}"
+else
+    APP_BIN=chiaki
+    APP_DESKTOP=chiaking.desktop
+    APP_IMAGE=chiaki-ng.AppImage
+fi
 ./linuxdeploy-${ARCH}.AppImage \
     --appdir="${appdir}" \
-    -e "${appdir}/usr/bin/chiaki" \
-    -d "${appdir}/usr/share/applications/chiaking.desktop" \
+    -e "${appdir}/usr/bin/${APP_BIN}" \
+    -d "${appdir}/usr/share/applications/${APP_DESKTOP}" \
     "${NSS_MODULE_ARGS[@]}" \
     --plugin qt \
     --exclude-library='libva*' \
@@ -121,4 +134,8 @@ for nss_module in libsoftokn3.so libfreebl3.so libfreeblpriv3.so libnssckbi.so; 
         exit 1
     fi
 done
-mv chiaki-ng-${ARCH}.AppImage chiaki-ng.AppImage
+# vice hook: only upstream's default name needs the rename
+if [ "${APP_IMAGE}" = "chiaki-ng.AppImage" ]; then
+    mv chiaki-ng-${ARCH}.AppImage chiaki-ng.AppImage
+fi
+ls -la "${APP_IMAGE}"

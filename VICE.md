@@ -112,7 +112,18 @@ open "build/gui/Project Vice.app"
 
 If linking fails with `framework 'AGL' not found` (Qt 6.9.0 on a recent macOS SDK), add `"-DWrapOpenGL_AGL=-framework OpenGL"` to the configure line. Without MoltenVK the app falls back from Vulkan to OpenGL.
 
-**Windows and Linux** use upstream's recipes: `.github/workflows/build-windows-x86.yml` (MSVC) or `build-msys2.yml` list the steps, and `scripts/run-podman-build-appimage.sh` builds an AppImage. Neither has been built for this fork yet. Nothing builds on GitHub: Actions is turned off for the repository, and release builds will be published separately.
+**Steam Deck and Linux.** `scripts/build-appimage.sh` builds `appimage/ProjectVice.AppImage` inside upstream's builder container. It has been built and run on a Steam Deck (SteamOS 3.9) this way, on the Deck itself:
+
+```
+podman run --rm --volume "$(pwd):/build/chiaki:Z" -w /build/chiaki \
+  --device /dev/fuse --cap-add SYS_ADMIN -e APPIMAGE_EXTRACT_AND_RUN=1 \
+  docker.io/streetpea/chiaki-ng-builder:qt6.9.3 \
+  /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
+```
+
+Settings live in `~/.config/Project Vice/Project Vice.conf` on Linux. `steamos-add-to-steam <path to the AppImage>` adds it to the Steam library.
+
+**Windows** uses upstream's recipes: `.github/workflows/build-windows-x86.yml` (MSVC) or `build-msys2.yml` list the steps. It has not been built for this fork yet. Nothing builds on GitHub: Actions is turned off for the repository, and release builds will be published separately.
 
 ## Preview, screenshots and tests
 
