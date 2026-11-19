@@ -18,6 +18,29 @@ V.Page {
     property string mode: savedMode === "custom" ? "custom" : savedMode
     property bool starting: false
 
+    // The game the console says it is running, when it says so
+    readonly property string titleId: entry && entry.host.titleId ? entry.host.titleId : ""
+    readonly property string gameName: entry && entry.host.app ? entry.host.app : ""
+    readonly property string profileName: Chiaki.settings.currentProfile || "default"
+    readonly property bool gameLinked: titleId !== "" && Vice.gameProfiles[titleId] !== undefined && Vice.gameProfiles[titleId].profile === profileName
+
+    function linkGame(on) {
+        const next = Object.assign({}, Vice.gameProfiles);
+        if (on)
+            next[titleId] = { profile: profileName, name: gameName };
+        else
+            delete next[titleId];
+        Vice.gameProfiles = next;
+    }
+    Component.onCompleted: {
+        // A game with its own profile switches to it
+        const linked = titleId ? Vice.gameProfiles[titleId] : undefined;
+        if (linked && linked.profile !== profileName && Chiaki.settings.profiles.includes(linked.profile)) {
+            Chiaki.settings.currentProfile = linked.profile === "default" ? "" : linked.profile;
+            Vice.notify({ key: "game-profile", severity: "info", title: qsTr("Profile: %1").arg(linked.profile), body: qsTr("Chosen for %1.").arg(gameName || titleId) });
+        }
+    }
+
     tab: "consoles"
     initialFocus: startButton
     artwork.preset: "palms"
@@ -175,7 +198,7 @@ V.Page {
             title: qsTr("Game")
             summary: qsTr("Fast response")
             iconName: "gamepad"
-            points: [qsTr("Fastest processing"), qsTr("Least added delay"), qsTr("Lightest on the GPU")]
+            points: [qsTr("Fastest processing"), qsTr("Least added delay"), qsTr("Adapts bitrate itself")]
             art { imageX: 0.53; imageY: 0.13; atX: 0.5; atY: 0.26; zoom: 1.75 }
         }
         ModeCard {
@@ -183,7 +206,7 @@ V.Page {
             title: qsTr("Quality")
             summary: qsTr("Sharper picture")
             iconName: "image"
-            points: [qsTr("Sharper scaling"), qsTr("Cleaner gradients"), qsTr("More GPU time per frame")]
+            points: [qsTr("Sharper scaling"), qsTr("Cleaner gradients"), qsTr("Asks before adapting")]
             art { imageX: 0.17; imageY: 0.3; atX: 0.42; atY: 0.28; zoom: 2.5 }
         }
     }
@@ -202,6 +225,13 @@ V.Page {
             currentIndex: Math.max(0, model.indexOf(Chiaki.settings.currentProfile || "default"))
             onActivated: (index) => Chiaki.settings.currentProfile = model[index] === "default" ? "" : model[index]
             Accessible.name: qsTr("Game profile")
+        }
+        V.Toggle {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: page.titleId !== ""
+            text: qsTr("Always for %1").arg(page.gameName || qsTr("this game"))
+            checked: page.gameLinked
+            onToggled: page.linkGame(checked)
         }
         Rectangle { anchors.verticalCenter: parent.verticalCenter; width: Theme.border; height: Theme.px(32); color: Theme.alpha(Theme.text, 0.5) }
         V.StatusDot { anchors.verticalCenter: parent.verticalCenter; state: page.entry ? Vice.stateOf(page.entry.host) : "off" }

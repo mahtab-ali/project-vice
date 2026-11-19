@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Window
 
 import org.streetpea.chiaking
+import vice.backend
 
 import ".."
 import "../components" as V
@@ -62,6 +63,8 @@ V.Page {
               get: (v) => v ? v / 1000 : defaultBitrate[value("resolution" + stream) - 1] || 10, set: (v) => v * 1000, def: 0 },
             { key: "codec" + stream, prop: "codec" + stream, label: qsTr("Video codec"), type: "choice", visible: ps5,
               options: openGl ? ["H264", "H265"] : ["H264", "H265", qsTr("H265 with HDR")], get: (v) => v, set: (v) => v, def: 1 },
+            { key: "awayPreset", label: qsTr("Away-from-home starting point"), type: "action", text: qsTr("Use it"), visible: !local,
+              hint: qsTr("720p, 60 fps, 8 Mbps: holds up on most connections"), run: () => page.useAwayPreset() },
             { group: qsTr("Upscaling") },
             { key: "upscaler", label: qsTr("Upscaler"), type: "choice", local: true, options: [qsTr("Built-in"), qsTr("RTX Video")], disabled: [1],
               hint: qsTr("RTX Video needs an NVIDIA RTX GPU and plugin"), chip: qsTr("RTX Video not available"), get: () => 0, set: () => { } },
@@ -81,6 +84,11 @@ V.Page {
               hint: qsTr("What the console is told, at most"), get: (v) => v, set: (v) => v },
             { key: "iDROnFECFailureEnabled", prop: "iDROnFECFailureEnabled", label: qsTr("Ask for a fresh frame after errors"), type: "toggle", get: (v) => v, set: (v) => v },
             { key: "portGuessingEnabled", prop: "portGuessingEnabled", label: qsTr("Guess ports when away from home"), type: "toggle", get: (v) => v, set: (v) => v, def: false },
+            { group: qsTr("Automatic") },
+            { key: "adaptiveBitrate", label: qsTr("Lower bitrate on packet loss"), type: "toggle", local: true,
+              hint: qsTr("On its own in Game mode, asks first in Quality mode"), get: () => Vice.adaptiveBitrate, set: (v) => Vice.adaptiveBitrate = v },
+            { key: "autoBuffer", label: qsTr("Size the audio buffer for me"), type: "toggle", local: true,
+              hint: qsTr("From the jitter the connection check measured"), get: () => Vice.autoBuffer, set: (v) => Vice.autoBuffer = v },
             { group: qsTr("Away from home") },
             { key: "remote", label: qsTr("Play from anywhere"), type: "action", text: qsTr("Set up"), hint: qsTr("PSN sign-in or port forwarding, step by step"), run: () => root.showRemotePlay() },
             { key: "psn", label: qsTr("PSN account"), type: "action", text: s.psnAuthToken ? qsTr("Signed in") : qsTr("Sign in"), run: () => root.showAccount() }
@@ -153,6 +161,17 @@ V.Page {
             { key: "rendererBackend", prop: "rendererBackend", label: qsTr("Renderer"), type: "choice", options: ["Vulkan", "OpenGL"],
               hint: qsTr("Takes effect after a restart"), get: (v) => v, set: (v) => v },
             { key: "hideCursor", prop: "hideCursor", label: qsTr("Hide the pointer during play"), type: "toggle", get: (v) => v, set: (v) => v },
+            { group: qsTr("Speed") },
+            { key: "lowDelayDecoder", label: qsTr("Low-delay decoding"), type: "toggle", local: true, hint: qsTr("From the next connection"),
+              get: () => Engine.lowDelayDecoder, set: (v) => Engine.lowDelayDecoder = v },
+            { key: "threadPriority", label: qsTr("Raise the stream's thread priority"), type: "toggle", local: true, hint: qsTr("From the next connection"),
+              get: () => Engine.threadPriority, set: (v) => Engine.threadPriority = v },
+            { key: "qosTagging", label: qsTr("Mark stream packets as priority"), type: "toggle", local: true, hint: qsTr("Helps on routers that honour it"),
+              get: () => Engine.qosTagging, set: (v) => Engine.qosTagging = v },
+            { key: "systemTuning", label: qsTr("Tune Windows while playing"), type: "toggle", local: true, visible: Engine.systemTuningSupported,
+              hint: qsTr("1 ms timers and Wi-Fi streaming mode, undone afterwards"), get: () => Engine.systemTuning, set: (v) => Engine.systemTuning = v },
+            { key: "replayEnabled", label: qsTr("Keep a replay ready"), type: "toggle", local: true,
+              hint: qsTr("Asks the console for a full picture every 15 seconds"), get: () => Engine.replayEnabled, set: (v) => Engine.replayEnabled = v },
             { group: qsTr("This app") },
             { key: "showStreamStats", prop: "showStreamStats", label: qsTr("Latency overlay"), type: "toggle", get: (v) => v, set: (v) => v },
             { key: "streamerMode", prop: "streamerMode", label: qsTr("Hide addresses and IDs"), type: "toggle", get: (v) => v, set: (v) => v },
@@ -186,6 +205,22 @@ V.Page {
             draft[row.prop.replace("resolution", "bitrate")] = 0;
         revision++;
     }
+    // A starting point for the stream used away from home; it is a draft like any other edit
+    function useAwayPreset() {
+        const set = (prop, value) => {
+            if (value === Chiaki.settings[prop])
+                delete draft[prop];
+            else
+                draft[prop] = value;
+        };
+        set("resolution" + stream, 3);
+        set("fps" + stream, 60);
+        set("bitrate" + stream, 8000);
+        if (stream.endsWith("PS5"))
+            set("codec" + stream, 1);
+        revision++;
+    }
+
     function save() {
         const edited = Object.keys(draft);
         for (const prop of edited)
@@ -442,7 +477,7 @@ V.Page {
             size: "sm"
             implicitHeight: Theme.px(34)
             text: spec.text
-            onTriggered: page.confirmLeave(spec.run) && spec.run()
+            onTriggered: spec.key === "awayPreset" ? spec.run() : page.confirmLeave(spec.run) && spec.run()
         }
     }
     Component {

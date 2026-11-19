@@ -2,6 +2,7 @@
 import QtQuick
 
 import org.streetpea.chiaking
+import vice.backend
 
 import ".."
 import "../components" as V
@@ -240,16 +241,17 @@ FocusScope {
                 kind: "outline"
                 implicitHeight: Theme.px(44)
                 iconName: "replay"
-                text: qsTr("Save last 30 seconds")
-                enabled: Vice.replayAvailable
-                onTriggered: Vice.replayRequested()
+                text: !Engine.replayEnabled ? qsTr("Turn on replay capture") : Engine.replaySaving ? qsTr("Saving…") : qsTr("Save last 30 seconds")
+                enabled: !Engine.replayEnabled || Engine.replaySeconds >= 1
+                busy: Engine.replaySaving
+                onTriggered: Engine.replayEnabled ? Engine.saveReplay() : Engine.replayEnabled = true
             }
             V.Label {
-                visible: !Vice.replayAvailable
+                visible: !Engine.replayEnabled || Engine.replaySeconds < 1
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 topPadding: Theme.px(4)
-                text: qsTr("Replay capture is not available in this build")
+                text: !Engine.replayEnabled ? qsTr("Off by default: it costs a full picture every 15 seconds") : qsTr("Getting the replay ready…")
                 font.pixelSize: Theme.px(12)
                 color: Theme.textMuted
             }

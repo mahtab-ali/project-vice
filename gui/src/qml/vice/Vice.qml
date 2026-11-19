@@ -23,6 +23,14 @@ QtObject {
     property string controllerStyle: "auto"
     // Steam Deck layout this app last set: "", "playstation" or "gamepad"
     property string deckLayout: ""
+    // Lower the bitrate when the connection cannot carry it (asks first in Quality mode)
+    property bool adaptiveBitrate: true
+    // Size the audio buffer from the last connection check
+    property bool autoBuffer: true
+    // Stick tuning per settings profile: { profile: { preset, left, right, curve } }
+    property var sticks: ({})
+    // Which settings profile a game uses: { titleId: { profile, name } }
+    property var gameProfiles: ({})
     // Stable key of the console shown as the hero on Home
     property string selectedConsole: ""
     // [{ console, type, started, seconds, bitrate, loss, dropped, resolution, fps }]; null = not recorded
@@ -35,17 +43,12 @@ QtObject {
     property var failed: null
     // A session ended on purpose to apply stream changes: { op, key }
     property var reconnect: null
-    // Benchmark results; null until a build can measure them: { example, link, rows: [{ label, unit, stock, vice }] }
+    // Results of the last benchmark, or null: { example, at, console, link, rows: [{ label, unit, stock, vice }] }
     property var benchmark: null
-    // Stick tuning values; null until the backend has deadzones and curves: { preset, left, right, curve }
-    property var stickTuning: null
-    // Replay capture; false until a build can record the stream
-    property bool replayAvailable: false
+    // A benchmark in progress: { phase: "stock" | "vice", left } or null
+    property var benchmarkRun: null
     // Asks the stream view to open the quick menu (from a notification action)
     signal quickMenuRequested()
-    // Asks for the last seconds of the stream to be saved; nothing answers it until replay capture exists
-    signal replayRequested()
-
     readonly property int historyLimit: 50
 
     property Settings store: Settings {
@@ -57,6 +60,12 @@ QtObject {
         property bool cleanView: false
         property string controllerStyle: "auto"
         property string deckLayout: ""
+        property bool adaptiveBitrate: true
+        property bool autoBuffer: true
+        property string sticks: "{}"
+        property string gameProfiles: "{}"
+        property string benchmark: ""
+        property string lastCheck: ""
     }
 
     Component.onCompleted: {
@@ -65,6 +74,12 @@ QtObject {
         cleanView = store.cleanView;
         controllerStyle = store.controllerStyle;
         deckLayout = store.deckLayout;
+        adaptiveBitrate = store.adaptiveBitrate;
+        autoBuffer = store.autoBuffer;
+        try { sticks = JSON.parse(store.sticks); } catch (e) { sticks = {}; }
+        try { gameProfiles = JSON.parse(store.gameProfiles); } catch (e) { gameProfiles = {}; }
+        try { benchmark = store.benchmark ? JSON.parse(store.benchmark) : null; } catch (e) { benchmark = null; }
+        try { lastCheck = store.lastCheck ? JSON.parse(store.lastCheck) : null; } catch (e) { lastCheck = null; }
         selectedConsole = store.selectedConsole;
         try { history = JSON.parse(store.history); } catch (e) { history = []; }
     }
@@ -74,6 +89,50 @@ QtObject {
     onCleanViewChanged: if (persist) store.cleanView = cleanView
     onControllerStyleChanged: if (persist) store.controllerStyle = controllerStyle
     onDeckLayoutChanged: if (persist) store.deckLayout = deckLayout
+    onAdaptiveBitrateChanged: if (persist) store.adaptiveBitrate = adaptiveBitrate
+    onAutoBufferChanged: if (persist) store.autoBuffer = autoBuffer
+    onSticksChanged: if (persist) store.sticks = JSON.stringify(sticks)
+    onGameProfilesChanged: if (persist) store.gameProfiles = JSON.stringify(gameProfiles)
+    onLastCheckChanged: if (persist) store.lastCheck = lastCheck ? JSON.stringify(lastCheck) : ""
+    onBenchmarkChanged: if (persist) store.benchmark = benchmark && !benchmark.example ? JSON.stringify(benchmark) : ""
+
+    // ---- Stick presets -------------------------------------------------------
+    readonly property var stickPresets: [
+        { id: "default", text: qsTr("Default"), left: 0, right: 0, curve: 0 },
+        { id: "driving", text: qsTr("Driving & aiming"), left: 8, right: 6, curve: 1 },
+        { id: "precise", text: qsTr("Precise aiming"), left: 10, right: 4, curve: 2 },
+        { id: "custom", text: qsTr("Custom"), left: 0, right: 0, curve: 0 }
+    ]
+    function sticksFor(profile) {
+        const saved = sticks[profile || "default"];
+        return saved || { preset: "default", left: 0, right: 0, curve: 0 };
+    }
+    function setSticksFor(profile, value) {
+        const next = Object.assign({}, sticks);
+        next[profile || "default"] = value;
+        sticks = next;
+    }
+
+    // ---- Adaptive bitrate ----------------------------------------------------
+    // One step down from the stream in use, or null when there is nowhere lower to go.
+    // Bitrate drops by about a third at a time; under 6 Mbps a 1080p stream goes to 720p instead.
+    function adaptiveStep(mbps, resolution) {
+        if (mbps > 6)
+            return { mbps: Math.max(6, Math.round(mbps * 0.65)), resolution: resolution };
+        if (resolution > 3)
+            return { mbps: 8, resolution: 3 };
+        if (mbps > 3)
+            return { mbps: 3, resolution: resolution };
+        return null;
+    }
+    // Audio buffer in units of 10 ms, from measured jitter in ms. Null when there is no measurement.
+    function bufferFor(jitterMs, gameMode) {
+        if (jitterMs === null || jitterMs === undefined || !isFinite(jitterMs))
+            return null;
+        const base = jitterMs < 2 ? 3 : jitterMs < 6 ? 5 : jitterMs < 15 ? 7 : 9;
+        return gameMode ? base : Math.min(10, base + 1);
+    }
+
 
     function recordSession(entry) {
         history = [entry].concat(history).slice(0, historyLimit);

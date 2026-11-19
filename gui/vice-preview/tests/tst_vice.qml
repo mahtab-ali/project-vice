@@ -158,6 +158,34 @@ Item {
             compare(triggered.count, 1);
         }
 
+        // ---- Automatic stream decisions -----------------------------------------
+
+        function test_adaptiveStepWalksDownAndStops() {
+            compare(Vice.adaptiveStep(15, 4), { mbps: 10, resolution: 4 });
+            compare(Vice.adaptiveStep(10, 4), { mbps: 7, resolution: 4 });
+            compare(Vice.adaptiveStep(7, 4), { mbps: 6, resolution: 4 });
+            // At 6 Mbps a 1080p stream gives up resolution, not more bitrate
+            compare(Vice.adaptiveStep(6, 4), { mbps: 8, resolution: 3 });
+            compare(Vice.adaptiveStep(6, 3), { mbps: 3, resolution: 3 });
+            compare(Vice.adaptiveStep(3, 3), null);
+        }
+
+        function test_bufferFollowsJitterAndNeedsAMeasurement() {
+            compare(Vice.bufferFor(undefined, true), null);
+            compare(Vice.bufferFor(NaN, true), null);
+            compare(Vice.bufferFor(1, true), 3);
+            compare(Vice.bufferFor(1, false), 4);
+            compare(Vice.bufferFor(20, true), 9);
+            compare(Vice.bufferFor(20, false), 10);
+        }
+
+        function test_sticksAreKeptPerProfile() {
+            compare(Vice.sticksFor("").left, 0);
+            Vice.setSticksFor("GTA VI", { preset: "driving", left: 8, right: 6, curve: 1 });
+            compare(Vice.sticksFor("GTA VI").left, 8);
+            compare(Vice.sticksFor("").left, 0);
+        }
+
         function test_pinTakesEightDigitsOnly() {
             pin.forceActiveFocus();
             for (const key of "48a21 07x36999")

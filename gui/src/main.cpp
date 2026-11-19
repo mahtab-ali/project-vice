@@ -24,6 +24,9 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <discoverymanager.h>
 #include <qmlmainwindow.h>
 #include <QApplication>
+#include <QFile>
+#include <QFileInfo>
+#include <QStringList>
 #include <QtTypes>
 
 #ifdef CHIAKI_ENABLE_CLI
@@ -70,6 +73,24 @@ int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_ex
 
 int real_main(int argc, char *argv[])
 {
+#if defined(CHIAKI_VICE_UI) && defined(Q_OS_MACOS) // vice hook: Qt has to be told where the Vulkan loader is, or the app falls back to OpenGL
+	if(!qEnvironmentVariableIsSet("QT_VULKAN_LIB"))
+	{
+		// A deployed app carries the loader in Frameworks; a build-tree run uses the build machine's
+		QStringList loaders = { QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath() + QStringLiteral("/../Frameworks/libvulkan.1.dylib") };
+#ifdef VICE_VULKAN_LOADER
+		loaders.append(QStringLiteral(VICE_VULKAN_LOADER));
+#endif
+		for(const QString &path : loaders)
+		{
+			if(QFile::exists(path))
+			{
+				qputenv("QT_VULKAN_LIB", path.toLocal8Bit());
+				break;
+			}
+		}
+	}
+#endif
 	qRegisterMetaType<DiscoveryHost>();
 	qRegisterMetaType<RegisteredHost>();
 	qRegisterMetaType<HostMAC>();

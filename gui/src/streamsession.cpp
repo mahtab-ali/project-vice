@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
+#ifdef CHIAKI_VICE_UI
+#include "vice/engine.h" // vice hook
+#endif
 #include <streamsession.h>
 #include <settings.h>
 #include <controllermanager.h>
@@ -558,6 +561,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_opus_decoder_set_cb(&opus_decoder, AudioSettingsCb, AudioFrameCb, this);
 	ChiakiAudioSink audio_sink;
 	chiaki_opus_decoder_get_sink(&opus_decoder, &audio_sink);
+#ifdef CHIAKI_VICE_UI
+	viceWrapAudioSink(&audio_sink); // vice hook: the replay buffer sees the audio on its way through
+#endif
 	chiaki_session_set_audio_sink(&session, &audio_sink);
 	ChiakiAudioHeader audio_header;
 	chiaki_audio_header_set(&audio_header, 2, 16, MICROPHONE_SAMPLES * 100, MICROPHONE_SAMPLES);
@@ -582,7 +588,11 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	else
 	{
 #endif
+#ifdef CHIAKI_VICE_UI
+		viceSessionCreated(&session, ffmpeg_decoder); // vice hook: times the video and feeds the decoder itself
+#else
 		chiaki_session_set_video_sample_cb(&session, chiaki_ffmpeg_decoder_video_sample_cb, ffmpeg_decoder);
+#endif
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
@@ -743,6 +753,9 @@ StreamSession::~StreamSession()
 		chiaki_session_stop(&session);
 		chiaki_session_join(&session);
 	}
+#ifdef CHIAKI_VICE_UI
+	viceSessionDestroyed(&session); // vice hook
+#endif
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
 	chiaki_opus_encoder_fini(&opus_encoder);
@@ -1317,6 +1330,9 @@ void StreamSession::DpadSendFeedbackState()
 			dpad_touch_stop_timer->start(NEW_DPAD_TOUCH_INTERVAL_MS);
 	}
 	chiaki_controller_state_or(&state, &state, &dpad_touch_state);
+#ifdef CHIAKI_VICE_UI
+	viceApplyStickTuning(&state); // vice hook: deadzone and response curve
+#endif
 	chiaki_session_set_controller_state(&session, &state);
 }
 
@@ -1373,6 +1389,9 @@ void StreamSession::SendFeedbackState()
 			dpad_touch_stop_timer->start(NEW_DPAD_TOUCH_INTERVAL_MS);
 	}
 	chiaki_controller_state_or(&state, &state, &dpad_touch_state);
+#ifdef CHIAKI_VICE_UI
+	viceApplyStickTuning(&state); // vice hook: deadzone and response curve
+#endif
 	chiaki_session_set_controller_state(&session, &state);
 }
 

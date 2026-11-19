@@ -26,7 +26,11 @@ V.Page {
     onSavedModeChanged: mode = savedMode
     readonly property bool dirty: mode !== savedMode
     property bool naming: false
-    readonly property var sticks: Vice.stickTuning
+    // Stick tuning belongs to the settings profile in use
+    readonly property var sticks: Vice.sticksFor(Chiaki.settings.currentProfile)
+    function setSticks(change) {
+        Vice.setSticksFor(Chiaki.settings.currentProfile, Object.assign({}, sticks, change));
+    }
     readonly property var pad: Chiaki.controllers.length ? Chiaki.controllers[0] : null
 
     function saveProfile() {
@@ -154,48 +158,60 @@ V.Page {
                 label: qsTr("Stick preset")
                 V.Dropdown {
                     width: Theme.px(346); implicitHeight: Theme.px(36)
-                    enabled: page.sticks !== null
-                    model: [page.sticks ? page.sticks.preset : "—"]
+                    model: Vice.stickPresets.map(p => p.text)
+                    currentIndex: Math.max(0, Vice.stickPresets.findIndex(p => p.id === page.sticks.preset))
+                    onActivated: (index) => {
+                        const preset = Vice.stickPresets[index];
+                        // "Custom" keeps the values that are there; the others bring their own
+                        page.setSticks(preset.id === "custom" ? { preset: "custom" } : { preset: preset.id, left: preset.left, right: preset.right, curve: preset.curve });
+                    }
                     Accessible.name: qsTr("Stick preset")
                 }
             }
             FormRow {
                 label: qsTr("Left stick deadzone")
-                V.Slider { width: Theme.px(346); implicitHeight: Theme.px(36); enabled: page.sticks !== null; from: 0; to: 50; value: page.sticks ? page.sticks.left : 0; Accessible.name: qsTr("Left stick deadzone") }
-                V.Label { anchors.verticalCenter: parent.verticalCenter; text: page.sticks ? page.sticks.left + "%" : "—"; font.weight: Theme.weightStrong }
+                V.Slider {
+                    width: Theme.px(346); implicitHeight: Theme.px(36)
+                    from: 0; to: 50; stepSize: 1
+                    value: page.sticks.left
+                    onMoved: page.setSticks({ preset: "custom", left: Math.round(value) })
+                    Accessible.name: qsTr("Left stick deadzone")
+                }
+                V.Label { anchors.verticalCenter: parent.verticalCenter; text: page.sticks.left + "%"; font.weight: Theme.weightStrong }
             }
             FormRow {
                 label: qsTr("Right stick deadzone")
-                V.Slider { width: Theme.px(346); implicitHeight: Theme.px(36); enabled: page.sticks !== null; from: 0; to: 50; value: page.sticks ? page.sticks.right : 0; Accessible.name: qsTr("Right stick deadzone") }
-                V.Label { anchors.verticalCenter: parent.verticalCenter; text: page.sticks ? page.sticks.right + "%" : "—"; font.weight: Theme.weightStrong }
+                V.Slider {
+                    width: Theme.px(346); implicitHeight: Theme.px(36)
+                    from: 0; to: 50; stepSize: 1
+                    value: page.sticks.right
+                    onMoved: page.setSticks({ preset: "custom", right: Math.round(value) })
+                    Accessible.name: qsTr("Right stick deadzone")
+                }
+                V.Label { anchors.verticalCenter: parent.verticalCenter; text: page.sticks.right + "%"; font.weight: Theme.weightStrong }
             }
             FormRow {
                 label: qsTr("Response curve")
                 V.Dropdown {
                     width: Theme.px(346); implicitHeight: Theme.px(36)
-                    enabled: page.sticks !== null
-                    model: [page.sticks ? page.sticks.curve : "—"]
+                    model: [qsTr("Linear"), qsTr("Smooth"), qsTr("Precise")]
+                    currentIndex: page.sticks.curve
+                    onActivated: (index) => page.setSticks({ preset: "custom", curve: index })
                     Accessible.name: qsTr("Response curve")
                 }
             }
         }
 
-        V.InlineAlert {
-            visible: page.sticks === null
-            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: Theme.px(28) }
-            severity: "info"
-            text: qsTr("Stick deadzones and response curves are not available in this build. Button mapping is.")
-        }
-
-        // The curve the chosen response applies to stick travel
+        // What the chosen deadzone and curve do to stick travel, drawn from the same formula the app applies
         Item {
             id: curve
-            visible: page.sticks !== null
             anchors { left: parent.left; leftMargin: Theme.px(200); right: parent.right; rightMargin: Theme.px(90); bottom: parent.bottom; bottomMargin: Theme.px(34) }
             height: Theme.px(66)
+            readonly property real deadzone: page.sticks.left / 100
+            readonly property real exponent: page.sticks.curve === 1 ? 1.5 : page.sticks.curve === 2 ? 2.0 : 1.0
 
             V.Label { anchors { right: parent.left; rightMargin: Theme.unit; verticalCenter: parent.verticalCenter } text: qsTr("Response"); font.pixelSize: Theme.textSmall; color: Theme.textMuted }
-            V.Label { anchors { top: parent.bottom; topMargin: Theme.px(4); horizontalCenter: parent.horizontalCenter } text: qsTr("Stick input"); font.pixelSize: Theme.textSmall; color: Theme.textMuted }
+            V.Label { anchors { top: parent.bottom; topMargin: Theme.px(4); horizontalCenter: parent.horizontalCenter } text: qsTr("Left stick input"); font.pixelSize: Theme.textSmall; color: Theme.textMuted }
             Rectangle { width: 1; height: parent.height; color: Theme.alpha(Theme.text, 0.6) }
             Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.alpha(Theme.text, 0.6) }
             Shape {
@@ -204,15 +220,19 @@ V.Page {
                 ShapePath {
                     strokeColor: Theme.dash
                     strokeWidth: Math.max(2, Theme.px(2.5))
-                    fillGradient: LinearGradient {
-                        x1: 0; y1: 0; x2: 0; y2: curve.height
-                        GradientStop { position: 0; color: Theme.alpha(Theme.dash, 0.28) }
-                        GradientStop { position: 1; color: Theme.alpha(Theme.dash, 0) }
+                    fillColor: "transparent"
+                    joinStyle: ShapePath.RoundJoin
+                    PathPolyline {
+                        path: {
+                            const points = [];
+                            for (let i = 0; i <= 40; ++i) {
+                                const input = i / 40;
+                                const output = input <= curve.deadzone ? 0 : Math.pow((input - curve.deadzone) / (1 - curve.deadzone), curve.exponent);
+                                points.push(Qt.point(input * curve.width, (1 - output) * curve.height));
+                            }
+                            return points;
+                        }
                     }
-                    startX: 0; startY: curve.height
-                    PathCubic { x: curve.width; y: Theme.px(6); control1X: curve.width * 0.45; control1Y: curve.height * 0.92; control2X: curve.width * 0.65; control2Y: curve.height * 0.2 }
-                    PathLine { x: curve.width; y: curve.height }
-                    PathLine { x: 0; y: curve.height }
                 }
             }
         }

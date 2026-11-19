@@ -21,7 +21,7 @@ More screens are in [`screenshots/`](screenshots/).
 
 ## Status
 
-Early. The interface is complete; some features it has room for are not built yet and say so in the app (RTX upscaling, replay capture, benchmark, stick tuning). It has been built and run on macOS, and built on Linux. Windows is not built yet. [`VICE.md`](VICE.md) has the details, the build steps and how the code is laid out.
+Early. The interface is complete; RTX upscaling and HDR conversion are not built and say so in the app. It has been built and run on macOS, and built on Linux. Windows is not built yet. [`VICE.md`](VICE.md) has the details, the build steps and how the code is laid out.
 
 Release builds are not published yet.
 

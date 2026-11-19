@@ -50,6 +50,9 @@ extern "C" {
 #include "vice/netcheck.h" // vice hook
 #include "vice/brand.h" // vice hook
 #include "vice/platform.h" // vice hook
+#ifdef CHIAKI_VICE_UI
+#include "vice/engine.h" // vice hook
+#endif
 #endif
 #include <QQuickRenderTarget>
 #include <QQuickRenderControl>
@@ -3032,6 +3035,9 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, q
 
     if (!frame.frame)
         return;
+#ifdef CHIAKI_VICE_UI
+    viceFrameDelivered(); // vice hook: a decoded frame reached the renderer
+#endif
 
     if (bypass_frame_queue) {
         {
@@ -4863,6 +4869,10 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         format.setStencilBufferSize(8);
         format.setSwapInterval(settings->GetVSyncEnabled() ? 1 : 0);
         present_vsync_enabled = settings->GetVSyncEnabled();
+#if defined(CHIAKI_VICE_UI) && defined(Q_OS_MACOS) // vice hook: unsynced OpenGL tears and flickers on macOS
+        format.setSwapInterval(1);
+        present_vsync_enabled = true;
+#endif
 #if defined(Q_OS_MACOS)
         // macOS only exposes modern OpenGL as a core profile.
         if (format.majorVersion() < 4) {
@@ -7646,6 +7656,9 @@ void QmlMainWindow::render()
         const qint64 render_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         if (render_after_us >= render_call_begin_us) {
             logLatencyStats("render_image", render_after_us - render_call_begin_us);
+#ifdef CHIAKI_VICE_UI
+            viceFrameRendered(render_after_us - render_call_begin_us); // vice hook: a video frame was drawn
+#endif
             if (render_entry_us_local > 0 && render_after_us >= render_entry_us_local)
                 logLatencyStats("render_work", render_after_us - render_entry_us_local);
         }

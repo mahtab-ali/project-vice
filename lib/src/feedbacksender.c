@@ -49,6 +49,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_init(ChiakiFeedbackSender *
 	feedback_sender->history_packet_len = 0;
 	feedback_sender->should_stop = false;
 	feedback_sender->controller_state_changed = false;
+	feedback_sender->input_changed_us = 0; // vice hook
+	feedback_sender->input_latency_us = 0;
 	feedback_sender->history_dirty = false;
 	feedback_sender->history_last_size = 0;
 	feedback_sender->history_last_event_count = 0;
@@ -111,6 +113,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_set_controller_state(Chiaki
 	feedback_sender_record_history(feedback_sender, &feedback_sender->controller_state_history_prev, &feedback_sender->controller_state);
 	feedback_sender->controller_state_history_prev = feedback_sender->controller_state;
 	feedback_sender->controller_state_changed = true;
+	if(!feedback_sender->input_changed_us) // vice hook
+		feedback_sender->input_changed_us = chiaki_time_now_monotonic_us();
 
 	chiaki_mutex_unlock(&feedback_sender->state_mutex);
 	chiaki_cond_signal(&feedback_sender->state_cond);
@@ -331,6 +335,14 @@ static void *feedback_sender_thread_func(void *user)
 			feedback_sender->history_tail_resends++;
 			send_feedback_history = true;
 		}
+		// vice hook: a change is leaving in this round
+		uint64_t input_changed_us = 0;
+		if(send_feedback_state || send_feedback_history)
+		{
+			input_changed_us = feedback_sender->input_changed_us;
+			feedback_sender->input_changed_us = 0;
+		}
+
 		chiaki_mutex_unlock(&feedback_sender->state_mutex);
 
 		if(send_feedback_state)
@@ -338,6 +350,12 @@ static void *feedback_sender_thread_func(void *user)
 
 		if(send_feedback_history)
 			feedback_sender_send_history_packet(feedback_sender, history_packet_seq_num, history_event_count, history_buf, history_buf_size);
+
+		if(input_changed_us)
+		{
+			uint64_t sent_us = chiaki_time_now_monotonic_us();
+			feedback_sender->input_latency_us = sent_us > input_changed_us ? sent_us - input_changed_us : 1;
+		}
 
 		err = chiaki_mutex_lock(&feedback_sender->state_mutex);
 		if(err != CHIAKI_ERR_SUCCESS)

@@ -1009,6 +1009,15 @@ Item {
         Timer { id: hintTimer; interval: 9000; running: !sessionLoading }
     }
 
+    // vice: a benchmark says which half it is on and how long is left
+    V.HelpTip {
+        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Theme.px(28) }
+        visible: Vice.benchmarkRun !== null && !useSeparateMenuWindow && !sessionLoading
+        iconName: "signal"
+        text: Vice.benchmarkRun && Vice.benchmarkRun.phase === "stock" ? qsTr("Benchmark: tuning off") : qsTr("Benchmark: tuning on")
+        keys: Vice.benchmarkRun ? [qsTr("%1 s").arg(Vice.benchmarkRun.left)] : []
+    }
+
     // vice: a tab that opens the quick menu by touch or click. Everything else
     // on the picture belongs to the game, so this is the one place to tap.
     Rectangle {

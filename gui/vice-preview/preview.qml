@@ -12,6 +12,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import org.streetpea.chiaking
+import vice.backend
 import "../src/qml/vice"
 import "../src/qml" as App
 
@@ -107,16 +108,18 @@ Window {
         "settings-placebo": () => { ui.showPlaceboSettingsDialog() },
         "mapping": () => { ui.showControllerMappingDialog() },
         "steam-shortcut": () => { ui.showSteamShortcutDialog(false) },
-        "profiles": () => { Vice.stickTuning = { preset: "Driving & aiming", left: 8, right: 6, curve: "Smooth" }; Chiaki.settings.currentProfile = "GTA VI"; Chiaki.settings.videoPreset = 0; ui.showProfiles() },
+        "profiles": () => { Chiaki.settings.currentProfile = "GTA VI"; Vice.setSticksFor("GTA VI", { preset: "driving", left: 8, right: 6, curve: 1 }); Chiaki.settings.videoPreset = 0; ui.showProfiles() },
         "profiles-real": () => { ui.showProfiles() },
         "sessions": () => { Vice.history = historyFixture; ui.showTab("sessions") },
         "sessions-empty": () => { Vice.history = []; ui.showTab("sessions") },
         "benchmark": () => { Vice.benchmark = benchmarkFixture; ui.showBenchmark() },
-        "benchmark-unavailable": () => { Vice.benchmark = null; ui.showBenchmark() },
+        "benchmark-ready": () => { Vice.benchmark = null; ui.showBenchmark() },
+        "benchmark-running": () => { Vice.benchmarkRun = { phase: "vice", left: 18 }; Chiaki.startSession("192.168.1.20") },
         "stream": () => { Chiaki.startSession("192.168.1.20") },
         "stream-quick": () => { Chiaki.startSession("192.168.1.20"); later(() => Vice.quickMenuRequested()) },
-        "stream-quick-replay": () => { Vice.replayAvailable = true; Chiaki.startSession("192.168.1.20"); later(() => { Vice.quickMenuRequested(); note("replay") }) },
+        "stream-quick-replay": () => { Chiaki.startSession("192.168.1.20"); later(() => { Vice.quickMenuRequested(); note("replay") }) },
         "stream-disconnect": () => { Chiaki.startSession("192.168.1.20"); later(() => Chiaki.sessionStopDialogRequested()) },
+        "stream-pauses": () => { Chiaki.startSession("192.168.1.20"); Engine.stallsPerMinute = 96 },
         "stream-unstable": () => { Chiaki.startSession("192.168.1.20"); later(() => note("unstable")) },
         "stream-notice": () => { Chiaki.startSession("192.168.1.20"); later(() => note("replay")) },
         "stream-deck": () => { Chiaki.controllers = [{ dualSense: false, dualSenseEdge: false, handheld: true, steamVirtual: true, playStation: false }]; Chiaki.startSession("192.168.1.20"); later(() => note("unstable")) },
@@ -188,6 +191,7 @@ Window {
         // swaps in +vice/Main.qml with the same import rules as in the app
         sourceComponent: App.Main { }
         focus: true
+        Connections { target: Chiaki; function onEngineStreaming(on) { Engine.streaming = on } }
         onLoaded: {
             Vice.persist = false;
             Vice.history = [];

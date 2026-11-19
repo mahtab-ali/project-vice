@@ -45,6 +45,10 @@ typedef struct chiaki_feedback_sender_t
 	ChiakiControllerState controller_state_history_prev;
 	ChiakiControllerState controller_state;
 	bool controller_state_changed;
+	// vice hook: when the oldest unsent controller change arrived, and how long
+	// the last change waited before its packet was sent (0 = nothing measured yet)
+	uint64_t input_changed_us;
+	uint64_t input_latency_us;
 	bool history_dirty;
 	ChiakiMutex state_mutex;
 	ChiakiCond state_cond;

@@ -25,6 +25,14 @@ static double chiaki_ffmpeg_decoder_default_frame_duration_us(unsigned int max_f
 	return 1000000.0 / fps;
 }
 
+// vice hook: see chiaki_ffmpeg_decoder_set_low_delay
+static bool g_low_delay = false;
+
+CHIAKI_EXPORT void chiaki_ffmpeg_decoder_set_low_delay(bool low_delay)
+{
+	g_low_delay = low_delay;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,
 		ChiakiCodec codec, unsigned int max_fps, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
 		ChiakiFfmpegFrameAvailable frame_available_cb, void *frame_available_cb_user)
@@ -100,6 +108,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 		}
 		decoder->codec_context->hw_device_ctx = av_buffer_ref(decoder->hw_device_ctx);
 		CHIAKI_LOGI(log, "Using hardware decoder \"%s\" with pix_fmt=%s", hw_decoder_name, av_get_pix_fmt_name(decoder->hw_pix_fmt));
+	}
+
+	if(g_low_delay) // vice hook
+	{
+		decoder->codec_context->flags |= AV_CODEC_FLAG_LOW_DELAY;
+		decoder->codec_context->flags2 |= AV_CODEC_FLAG2_FAST;
+		// frame threads each hold a frame back; slices keep the speed without the delay
+		decoder->codec_context->thread_type = FF_THREAD_SLICE;
+		CHIAKI_LOGI(log, "Low-delay decoding enabled");
 	}
 
 	decoder->codec_context->framerate = decoder->synthetic_framerate;

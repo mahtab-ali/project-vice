@@ -5,14 +5,19 @@ import QtCore
 import ".."
 import "../components" as V
 
-// Before/after comparison. This build has no stream-timing instrumentation,
-// so in the app Vice.benchmark stays null and the page says so; the layout
-// below is what results will fill once a build can measure them.
+// Before/after comparison. The numbers come from two measured sessions the app
+// runs itself (Main.qml, startBenchmark); until one has been run there are none to show.
 V.Page {
     id: page
 
     tab: "sessions"
     initialFocus: results ? saveButton : unavailable.primaryButton
+
+    readonly property var target: root.benchmarkConsole()
+    function run() {
+        if (!root.startBenchmark())
+            Vice.notify({ key: "benchmark", severity: "warning", title: qsTr("Nothing to measure against"), body: qsTr("A paired console has to be visible on this network.") });
+    }
     artwork.preset: "palms"
     onBack: stack.pop()
 
@@ -51,7 +56,9 @@ V.Page {
     V.Label {
         id: sub
         anchors { left: headline.left; top: headline.bottom; topMargin: -Theme.px(4) }
-        text: qsTr("30-second comparison  ·  Same computer, console and network")
+        text: page.results && page.results.console
+            ? qsTr("30-second comparison  ·  %1  ·  %2").arg(page.results.console).arg(Qt.formatDateTime(new Date(page.results.at), "d MMM, HH:mm"))
+            : qsTr("30-second comparison  ·  Same computer, console and network")
         font.pixelSize: Theme.textHeading
     }
 
@@ -117,7 +124,7 @@ V.Page {
             id: footnote
             anchors { left: legend.left; bottom: parent.bottom; bottomMargin: Theme.px(18) }
             // Client receive-to-present time; it is not end-to-end latency
-            text: qsTr("Lower is better. Client timing excludes console encoding and the network.")
+            text: qsTr("Lower is better. Client timing excludes console encoding and the network. One run each, so small gaps are noise.")
         }
     }
 
@@ -132,10 +139,12 @@ V.Page {
             anchors.centerIn: parent
             width: parent.width - Theme.unit * 8
             iconName: "signal"
-            title: qsTr("Benchmark not available yet")
-            body: qsTr("This build cannot time the stream pipeline, so there are no before-and-after numbers to show. Nothing here is estimated.")
-            primaryText: qsTr("Back to sessions")
-            onPrimary: page.back()
+            title: page.target ? qsTr("Measure this setup") : qsTr("No console to measure against")
+            body: page.target
+                ? qsTr("Two 30-second sessions on %1, one after the other: first with this app's speed tuning off, then with it on. It takes about a minute and a half, and the picture is on screen while it runs. Nothing here is estimated.").arg(page.target.host.name)
+                : qsTr("A paired console has to be visible on this network. The comparison runs two short sessions on it.")
+            primaryText: page.target ? qsTr("Run the benchmark") : qsTr("Back to sessions")
+            onPrimary: page.target ? page.run() : page.back()
         }
     }
 
@@ -154,9 +163,7 @@ V.Page {
         kind: "outline"
         width: Theme.px(226)
         text: qsTr("Run again")
-        // No measuring engine in this build: say so rather than replaying old numbers
-        enabled: page.results && page.results.example !== true
-        onTriggered: Vice.notify({ key: "benchmark-unavailable", severity: "info", title: qsTr("Benchmark not available yet"), body: qsTr("This build cannot time the stream pipeline.") })
+        onTriggered: page.run()
     }
     V.Button {
         id: saveButton

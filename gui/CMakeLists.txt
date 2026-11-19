@@ -68,7 +68,13 @@ if(CHIAKI_ENABLE_VICE_UI)
 		include/vice/brand.h
 		src/vice/brand.cpp
 		include/vice/platform.h
-		src/vice/platform.cpp)
+		src/vice/platform.cpp
+		include/vice/engine.h
+		src/vice/engine.cpp
+		src/vice/engine_platform.cpp)
+	if(APPLE)
+		list(APPEND SOURCE_FILES src/vice/wifi_mac.mm)
+	endif()
 	add_definitions(-DCHIAKI_VICE_UI)
 	# Background artwork has its own terms, apart from the source code (see src/qml/vice/artwork/SOURCE.md)
 	set(VICE_ARTWORK "${CMAKE_CURRENT_SOURCE_DIR}/src/qml/vice/artwork/key-art.jpg")
@@ -197,7 +203,32 @@ set_target_properties(chiaki PROPERTIES
 
 # vice hook: name shown in the macOS menu bar, and the network check's Qt module
 if(CHIAKI_ENABLE_VICE_UI)
-	target_link_libraries(chiaki Qt::Network)
+	target_link_libraries(chiaki Qt::Network FFMPEG::avformat FFMPEG::avcodec FFMPEG::avutil)
+	if(APPLE)
+		target_link_libraries(chiaki "-framework CoreWLAN")
+		# Qt opens the Vulkan loader by name and only finds one inside a deployed bundle.
+		# A build run from the build tree is told where this machine's loader is (see main.cpp).
+		find_library(VICE_VULKAN_LOADER NAMES vulkan vulkan.1 HINTS /opt/homebrew/lib /usr/local/lib)
+		if(VICE_VULKAN_LOADER)
+			target_compile_definitions(chiaki PRIVATE VICE_VULKAN_LOADER="${VICE_VULKAN_LOADER}")
+		endif()
+		# MoltenVK goes inside the app, where the Vulkan loader looks first, so the app
+		# has its Vulkan driver on any Mac without anything being installed or configured.
+		find_library(VICE_MOLTENVK NAMES MoltenVK HINTS /opt/homebrew/lib /usr/local/lib)
+		if(VICE_MOLTENVK)
+			set(VICE_ICD_DIR "$<TARGET_BUNDLE_CONTENT_DIR:chiaki>/Resources/vulkan/icd.d")
+			file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/MoltenVK_icd.json"
+				"{\"file_format_version\": \"1.0.0\", \"ICD\": {\"library_path\": \"./libMoltenVK.dylib\", \"api_version\": \"1.2.0\", \"is_portability_driver\": true}}\n")
+			add_custom_command(TARGET chiaki POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E make_directory "${VICE_ICD_DIR}"
+				COMMAND ${CMAKE_COMMAND} -E copy "${VICE_MOLTENVK}" "${VICE_ICD_DIR}/libMoltenVK.dylib"
+				COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/MoltenVK_icd.json" "${VICE_ICD_DIR}/MoltenVK_icd.json")
+		else()
+			message(WARNING "MoltenVK not found: on macOS the app will fall back to OpenGL, which is slower and less even. brew install molten-vk")
+		endif()
+	elseif(WIN32)
+		target_link_libraries(chiaki winmm wlanapi avrt qwave ws2_32)
+	endif()
 	set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE_BUNDLE_NAME "Project Vice"
 		MACOSX_BUNDLE_GUI_IDENTIFIER "app.projectvice.ProjectVice"

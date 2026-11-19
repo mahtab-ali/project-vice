@@ -36,7 +36,13 @@ V.Page {
     readonly property var advice: grade === "good" ? { resolution: ps5 ? "1080p" : "720p", fps: 60, mbps: ps5 ? 15 : 10 }
                                 : grade === "fair" ? { resolution: "720p", fps: 60, mbps: 10 }
                                 : { resolution: "540p", fps: 30, mbps: 6 }
-    readonly property string linkText: check.link === "wired" ? qsTr("Wired") : check.link === "wifi" ? qsTr("Wi-Fi") : qsTr("Unknown")
+    // The band and signal come from the operating system; they are shown only when it reports them.
+    // ponytail: where the link type is unknown (macOS) an associated Wi-Fi is taken to be the link in use,
+    // which is wrong on a machine that is also cabled. Ask the route's interface if that matters.
+    readonly property string linkText: check.link === "wired" ? qsTr("Wired")
+        : Engine.wifiBand ? qsTr("%1 GHz").arg(Engine.wifiBand)
+        : check.link === "wifi" ? qsTr("Wi-Fi") : qsTr("Unknown")
+    readonly property bool slowBand: check.link !== "wired" && Engine.wifiBand === "2.4"
 
     tab: "consoles"
     initialFocus: check.running ? cancelButton : nextButton
@@ -47,6 +53,7 @@ V.Page {
     }
 
     function run() {
+        Engine.refreshWifi();
         if (entry)
             check.start(entry.host.address, ps5, seconds);
     }
@@ -80,6 +87,7 @@ V.Page {
         font.pixelSize: Theme.textHeading
         text: check.running ? qsTr("Measuring the link to %1 for %2 seconds.").arg(page.name).arg(page.seconds)
             : page.silent ? qsTr("%1 did not reply. Check that it is on, or in rest mode, and on this network.").arg(page.name)
+            : page.slowBand ? qsTr("You are on 2.4 GHz Wi-Fi: expect stutter. 5 GHz or a cable is steadier.")
             : page.grade === "good" ? (check.link === "wired" ? qsTr("Your wired connection looks stable.") : qsTr("Your connection looks stable."))
             : page.grade === "fair" ? qsTr("Some delay or loss was measured. A lower resolution will hold up better.")
             : page.grade === "poor" ? qsTr("High delay or loss was measured. A wired connection would help most.") : ""
@@ -103,7 +111,7 @@ V.Page {
 
         Hop { iconName: "console"; text: page.name; ok: check.received > 0 }
         Wire { }
-        Hop { iconName: check.link === "wifi" ? "wifi" : "ethernet"; text: check.link === "wired" ? qsTr("Ethernet") : check.link === "wifi" ? qsTr("Wi-Fi") : qsTr("Network"); ok: check.received > 0 }
+        Hop { iconName: check.link !== "wired" && (check.link === "wifi" || Engine.wifiBand) ? "wifi" : "ethernet"; text: check.link === "wired" ? qsTr("Ethernet") : Engine.wifiBand ? qsTr("Wi-Fi %1 GHz · %2%").arg(Engine.wifiBand).arg(Engine.wifiSignal) : check.link === "wifi" ? qsTr("Wi-Fi") : qsTr("Network"); ok: check.received > 0 }
         Wire { }
         Hop { iconName: "monitor"; text: qsTr("This computer"); ok: check.sent > 0 }
     }

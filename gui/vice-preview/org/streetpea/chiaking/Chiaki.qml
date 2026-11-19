@@ -87,6 +87,8 @@ QtObject {
         property bool streamMenuEnabled: true
         property int audioVolume: 128
         property int audioBufferSize: 9600
+        property bool directFrameMapping: true
+        property int placeboFrameMixer: 0
         property string audioOutDevice: ""
         property string audioInDevice: ""
         property var availableAudioOutDevices: ["Speakers", "Headphones"]
@@ -127,6 +129,7 @@ QtObject {
     }
     function startSession(host) {
         session = sessionFixture.createObject(chiaki, { host: host });
+        engineStreaming(true);
         window.hasVideo = true;
     }
     function stopSession(sleep) {
@@ -135,8 +138,11 @@ QtObject {
             return;
         session.destroy();
         session = null;
+        engineStreaming(false);
         window.hasVideo = false;
     }
+    // The preview's Engine fixture shows numbers only while a session is up
+    signal engineStreaming(bool on)
     function wakeUpHost(index, name) { console.log("wakeUpHost", index, name) }
     function deleteHost(index) { console.log("deleteHost", index) }
     function hideHost(mac, name) { console.log("hideHost", mac, name) }

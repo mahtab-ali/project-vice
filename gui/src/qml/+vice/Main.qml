@@ -247,8 +247,11 @@ Item {
         Vice.notify({
             key: "renderer-fallback",
             severity: "info",
-            title: qsTr("Using OpenGL"),
-            body: qsTr("The Vulkan renderer is not available here: %1").arg(reason)
+            severity: Qt.platform.os === "osx" ? "warning" : "info",
+            title: qsTr("Using the slower renderer"),
+            body: Qt.platform.os === "osx"
+                ? qsTr("Vulkan did not start, so the picture is drawn with OpenGL: slower and less even. On a Mac it needs MoltenVK installed.")
+                : qsTr("The Vulkan renderer is not available here: %1").arg(reason)
         });
     }
 
@@ -433,7 +436,14 @@ Item {
             return false;
         Vice.target = Vice.describe(entry);
         Vice.failed = null;
-        attempt = { op: Vice.beginOp("connect"), key: entry.key, connected: false, error: "" };
+        attempt = { op: Vice.beginOp("connect"), key: entry.key, connected: false, error: "", benchmark: bench !== null };
+        stallWarned = false;
+        // Audio buffer from the last measured jitter to this console, when there is one
+        if (Vice.autoBuffer && Vice.lastCheck && Vice.lastCheck.key === entry.key) {
+            const units = Vice.bufferFor(Vice.lastCheck.jitter, Vice.modeOf(Chiaki.settings.videoPreset) === "game");
+            if (units !== null)
+                Chiaki.settings.audioBufferSize = units * 1920;
+        }
         if (entry.host.discovered)
             Chiaki.connectToHost(entry.index, entry.host.name);
         else
@@ -481,9 +491,14 @@ Item {
     property var attempt: null
     property double unstableShownAt: 0
     property int unstableStreak: 0
+    property bool stallWarned: false
     property int controllerCount: 0
 
     function failureDialog(wasConnected, detail) {
+        if (bench) {
+            abortBenchmark(detail || qsTr("The console could not be reached."));
+            return;
+        }
         const target = Vice.target;
         const name = target ? target.name : qsTr("your console");
         Vice.failed = target;
@@ -524,6 +539,7 @@ Item {
             attempt.loss = [];
             Vice.closeDialog("connection-lost");
             Vice.failed = null;
+            warnAboutWifi();
         }
         if (!attempt.connected)
             return;
@@ -547,6 +563,172 @@ Item {
                 sticky: true
             });
         }
+        // The link pausing is its own problem: lowering the bitrate does not cure it
+        if (Engine.stallsPerMinute >= 20 && !stallWarned && !attempt.benchmark) {
+            stallWarned = true;
+            Vice.notify({
+                key: "stalls",
+                severity: "warning",
+                title: qsTr("The network keeps pausing"),
+                body: Qt.platform.os === "osx" && Engine.wifiBand
+                    ? qsTr("%1 pauses in the last minute. On a Mac's Wi-Fi that is usually AirDrop and AirPlay scanning. A cable stops it.").arg(Engine.stallsPerMinute)
+                    : qsTr("%1 pauses in the last minute between the console and here. A cable, or being closer to the router, helps most.").arg(Engine.stallsPerMinute)
+            });
+        }
+        // Ten seconds of it in a row: the stream is asking for more than the link carries
+        if (Vice.adaptiveBitrate && unstableStreak >= 5 && !attempt.benchmark && !Vice.reconnect
+                && adaptiveSteps < 3 && Date.now() - adaptiveAt > 120000)
+            considerStepDown();
+    }
+
+    // ---- Vice: what the app tells the user about their Wi-Fi ------------------
+    function warnAboutWifi() {
+        Engine.refreshWifi();
+        if (Engine.wifiBand === "2.4")
+            Vice.notify({ key: "wifi-band", severity: "warning", title: qsTr("2.4 GHz Wi-Fi"), body: qsTr("Expect stutter. 5 GHz or a cable is steadier.") });
+        else if (Engine.wifiSignal >= 0 && Engine.wifiSignal < 40)
+            Vice.notify({ key: "wifi-signal", severity: "warning", title: qsTr("Weak Wi-Fi signal"), body: qsTr("Signal is at %1%. Moving closer to the router will help.").arg(Engine.wifiSignal) });
+    }
+
+    // ---- Vice: lowering the stream when the link cannot carry it ---------------
+    // The lowered values last for this play session; the saved ones come back when it ends.
+    property var adaptiveOriginal: null
+    property int adaptiveSteps: 0
+    property double adaptiveAt: 0
+
+    function streamIdFor(target) {
+        return (target && target.remote ? "Remote" : "Local") + (target && target.type === "PS4" ? "PS4" : "PS5");
+    }
+
+    function considerStepDown() {
+        const s = Chiaki.settings;
+        const id = streamIdFor(Vice.target);
+        const resolution = s["resolution" + id];
+        const mbps = s["bitrate" + id] ? s["bitrate" + id] / 1000 : ([2, 6, 10, 15][resolution - 1] || 10);
+        const step = Vice.adaptiveStep(mbps, resolution);
+        adaptiveAt = Date.now();
+        if (!step || !Vice.target)
+            return;
+        const label = qsTr("%1 Mbps").arg(step.mbps) + (step.resolution !== resolution ? " " + qsTr("at %1").arg(["360p", "540p", "720p", "1080p"][step.resolution - 1]) : "");
+        const apply = () => {
+            if (!Chiaki.session || !Vice.target)
+                return;
+            if (!adaptiveOriginal)
+                adaptiveOriginal = { id: id, bitrate: s["bitrate" + id], resolution: resolution };
+            s["resolution" + id] = step.resolution;
+            s["bitrate" + id] = step.mbps * 1000;
+            adaptiveSteps++;
+            Vice.reconnect = { op: Vice.beginOp("reconnect"), key: Vice.target.key };
+            Chiaki.stopSession(false);
+        };
+        if (Vice.modeOf(Chiaki.settings.videoPreset) === "game") {
+            // Game mode: do it, and say so
+            Vice.notify({ key: "adaptive", severity: "info", title: qsTr("Lowering the stream"), body: qsTr("Packet loss. Reconnecting at %1 for this session.").arg(label) });
+            apply();
+        } else {
+            Vice.ask({
+                key: "adaptive",
+                severity: "warning",
+                title: qsTr("Lower the stream?"),
+                body: qsTr("The connection is dropping packets. %1 would hold up better, for this session. The stream stops for a moment while it restarts.").arg(label),
+                primary: { text: qsTr("Lower it"), run: apply },
+                secondary: { text: qsTr("Keep it as it is") },
+                cancel: "secondary",
+                defaultFocus: "secondary"
+            });
+        }
+    }
+
+    function restoreAfterAdaptive() {
+        if (adaptiveOriginal) {
+            Chiaki.settings["resolution" + adaptiveOriginal.id] = adaptiveOriginal.resolution;
+            Chiaki.settings["bitrate" + adaptiveOriginal.id] = adaptiveOriginal.bitrate;
+        }
+        adaptiveOriginal = null;
+        adaptiveSteps = 0;
+        adaptiveAt = 0;
+    }
+
+    // ---- Vice: benchmark -------------------------------------------------------
+    // Two measured 30-second sessions on the same console, first with the app's
+    // tuning switched off, then with it on. Everything shown comes from those runs.
+    property var bench: null
+    readonly property int benchSettle: 5
+    readonly property int benchLength: 30
+
+    function benchmarkConsole() {
+        const list = Vice.consoles(Chiaki.hosts).filter(c => c.host.registered && c.host.discovered);
+        return list.find(c => c.key === Vice.selectedConsole) || list[0] || null;
+    }
+
+    function startBenchmark() {
+        const entry = benchmarkConsole();
+        if (!entry || Chiaki.session || bench)
+            return false;
+        bench = { key: entry.key, name: entry.host.name, phase: "stock", elapsed: 0, stock: null, vice: null };
+        Engine.stockMode = true;
+        Vice.benchmarkRun = { phase: "stock", left: benchSettle + benchLength };
+        if (!startPlaying(entry.key)) {
+            abortBenchmark(qsTr("%1 is not visible on this network right now.").arg(entry.host.name));
+            return false;
+        }
+        return true;
+    }
+
+    function abortBenchmark(reason) {
+        if (!bench)
+            return;
+        bench = null;
+        Engine.stockMode = false;
+        Engine.endRun();
+        Vice.benchmarkRun = null;
+        if (reason)
+            Vice.notify({ key: "benchmark", severity: "error", title: qsTr("Benchmark stopped"), body: reason, sticky: true });
+    }
+
+    function finishBenchmark() {
+        const done = bench;
+        bench = null;
+        Vice.benchmarkRun = null;
+        Engine.stockMode = false;
+        const rows = [];
+        const add = (label, unit, key, digits) => {
+            // Only what both runs really measured
+            if (done.stock[key] !== undefined && done.vice[key] !== undefined)
+                rows.push({ label: label, unit: unit, stock: Number(done.stock[key].toFixed(digits)), vice: Number(done.vice[key].toFixed(digits)) });
+        };
+        add(qsTr("Client pipeline · median"), "ms", "pipelineMedian", 1);
+        add(qsTr("Client pipeline · p99"), "ms", "pipelineP99", 1);
+        add(qsTr("Decode · median"), "ms", "decodeMedian", 1);
+        add(qsTr("Stutters per minute"), "", "stuttersPerMinute", 1);
+        const link = (Engine.wifiBand ? qsTr("Wi-Fi %1 GHz").arg(Engine.wifiBand) : qsTr("Network")) + "  ·  " + streamSummary;
+        Vice.benchmark = { example: false, at: Date.now(), console: done.name, link: link, rows: rows,
+                           frames: { stock: done.stock.frames, vice: done.vice.frames } };
+        benchShowTimer.start();
+    }
+    Timer { id: benchShowTimer; interval: 900; onTriggered: root.showBenchmark() }
+    Timer { id: benchNextTimer; interval: 4000; onTriggered: { if (root.bench && !root.startPlaying(root.bench.key)) root.abortBenchmark(qsTr("The console could not be reached for the second run.")) } }
+    Timer {
+        interval: 1000
+        repeat: true
+        running: root.bench !== null && Chiaki.session !== null
+        onTriggered: {
+            const b = root.bench;
+            const session = Chiaki.session;
+            if (!b || !session || !session.connected || !Chiaki.window.hasVideo || (b.phase !== "stock" && b.phase !== "vice"))
+                return;
+            b.elapsed++;
+            Vice.benchmarkRun = { phase: b.phase, left: Math.max(0, root.benchSettle + root.benchLength - b.elapsed) };
+            if (b.elapsed === root.benchSettle)
+                Engine.beginRun();
+            if (b.elapsed === root.benchSettle + root.benchLength) {
+                b[b.phase] = Engine.endRun();
+                const last = b.phase === "vice";
+                b.phase = last ? "finishing" : "between";
+                // The console is left on, never put into rest mode
+                Chiaki.stopSession(false);
+            }
+        }
     }
 
     function finishSession() {
@@ -555,6 +737,21 @@ Item {
         Vice.dismissToast("unstable:" + (done ? done.key : ""));
         if (!done)
             return;
+        if (bench) {
+            // A benchmark's sessions are not play sessions: nothing goes into the history
+            if (bench.phase === "between") {
+                bench.phase = "vice";
+                bench.elapsed = 0;
+                Engine.stockMode = false;
+                Vice.benchmarkRun = { phase: "vice", left: benchSettle + benchLength };
+                benchNextTimer.start();
+            } else if (bench.phase === "finishing") {
+                finishBenchmark();
+            } else {
+                abortBenchmark(done.error || qsTr("The session ended before the measurement was complete."));
+            }
+            return;
+        }
         if (done.connected) {
             const mean = (list) => list.length ? list.reduce((a, b) => a + b, 0) / list.length : null;
             const ps5 = !Vice.target || Vice.target.type !== "PS4";
@@ -570,10 +767,15 @@ Item {
                 fps: ps5 ? Chiaki.settings.fpsLocalPS5 : Chiaki.settings.fpsLocalPS4
             });
         }
-        if (done.error && Vice.isCurrent("connect", done.op))
+        if (done.error && Vice.isCurrent("connect", done.op)) {
+            restoreAfterAdaptive();
             failureDialog(done.connected, done.error);
-        else if (Vice.reconnect && Vice.isCurrent("reconnect", Vice.reconnect.op))
+        } else if (Vice.reconnect && Vice.isCurrent("reconnect", Vice.reconnect.op)) {
             resumeAfterReconnect();
+        } else {
+            // The play session is over: the saved stream settings come back
+            restoreAfterAdaptive();
+        }
     }
 
     // "Reconnect to apply": the session was ended on purpose; start it again once
@@ -849,6 +1051,28 @@ Item {
             height: vertical ? grip : root.height
             cursorShape: modelData.cursor
             onPressed: Chiaki.window.startSystemResize(modelData.edges)
+        }
+    }
+
+    // ---- Vice: the engine follows the profile in use, and reports back --------
+    Binding { target: Engine; property: "leftDeadzone"; value: Vice.sticksFor(Chiaki.settings.currentProfile).left / 100 }
+    Binding { target: Engine; property: "rightDeadzone"; value: Vice.sticksFor(Chiaki.settings.currentProfile).right / 100 }
+    Binding { target: Engine; property: "stickCurve"; value: Vice.sticksFor(Chiaki.settings.currentProfile).curve }
+
+    Connections {
+        target: Engine
+        function onReplaySaved(path, seconds) {
+            Vice.notify({
+                key: "replay",
+                severity: "success",
+                title: qsTr("Replay saved"),
+                body: qsTr("The last %1 seconds, as an MP4.").arg(Math.round(seconds)),
+                actionText: qsTr("Show the file"),
+                action: () => Engine.revealFile(path)
+            });
+        }
+        function onReplayFailed(reason) {
+            Vice.notify({ key: "replay", severity: "error", title: qsTr("Replay not saved"), body: reason });
         }
     }
 
