@@ -12,7 +12,7 @@ Every screen below is real QML bound to the existing backend (`Chiaki`, its sett
 | --- | --- |
 | Home | Console discovery, on / rest / not-found states, connect, pair, wake, add, hide or remove. The chosen console is remembered across discovery refreshes. Empty, searching and search-off states. |
 | PSN sign-in | Replaces upstream's two sign-in dialogs with one page: sign in through your browser, sign in inside the app where Qt WebEngine is present, or look the account ID up by username. The calls into the backend are upstream's. |
-| Add console, console login PIN | Vice pages over the same backend calls. |
+| Add console, console login PIN | Vice pages over the same backend calls. Add console lists what discovery found on the network, addresses included, so the usual case is a pick, not typing; an address can still be entered for a console on another network. Pairing takes its console and address the same way. |
 | Play from anywhere | A guide with the actions beside each step: PSN sign-in, or port forwarding with the ports upstream documents, then adding the console by address. Reached from Settings, Network and from the account button. |
 | Shortcuts | A Settings page listing the keyboard and controller shortcuts the app really has. |
 | Pair console | Replaces upstream's register dialog and calls the same `registerHost`. PSN sign-in and lookup reuse upstream's pages. 8-digit code entry with paste, backspace and controller entry. Success is reported only when the console accepts the code. |

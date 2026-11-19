@@ -91,6 +91,18 @@ QtObject {
         }
         return out;
     }
+    // Consoles the app has found on this network, hidden ones included, each
+    // with the address discovery reported for it. Nobody has to type these.
+    function found(hosts) {
+        const out = [];
+        for (let i = 0; i < hosts.length; ++i) {
+            const host = hosts[i];
+            if (host.discovered && host.address)
+                out.push({ index: i, key: host.mac || host.address, name: host.name, address: host.address, ps5: host.ps5 !== false,
+                           registered: host.registered === true, hidden: host.display === false, mac: host.mac || "", state: stateOf(host) });
+        }
+        return out;
+    }
     function stateOf(host) { return host.state === "ready" ? "on" : host.state === "standby" ? "rest" : "off" }
     function consoleIcon(type) { return type === "PS4" ? "console4" : "console" }
     function typeOf(host) { return host.ps5 === undefined ? "" : host.ps5 ? "PS5" : "PS4" }

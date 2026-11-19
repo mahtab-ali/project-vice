@@ -140,6 +140,7 @@ QtObject {
     function wakeUpHost(index, name) { console.log("wakeUpHost", index, name) }
     function deleteHost(index) { console.log("deleteHost", index) }
     function hideHost(mac, name) { console.log("hideHost", mac, name) }
+    function unhideHost(mac) { console.log("unhideHost", mac) }
     function refreshPsnToken() { console.log("refreshPsnToken") }
     function registerHost(host, psnId, pin, cpin, broadcast, target, callback) {
         // The PIN is never logged, here or in the app

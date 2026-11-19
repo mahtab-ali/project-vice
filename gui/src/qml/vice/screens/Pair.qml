@@ -15,13 +15,64 @@ V.Page {
     property string host
     property bool ps5: true
 
+    // Consoles found on this network. The address comes from discovery, so
+    // the usual case needs no typing; "Enter an address" is the way out for
+    // a console on another network. The list is replaced only when it really
+    // changes, so discovery refreshes do not disturb the drop-down.
+    property var found: []
+    property string foundSignature
+    property bool manual: false
+    property string chosen
+    readonly property var chosenConsole: found.find(f => f.address === chosen) || null
+    readonly property string address: manual ? hostField.text.trim() : chosen
+
+    function refreshFound() {
+        const list = Vice.found(Chiaki.hosts);
+        const signature = list.map(f => f.address + f.name + f.registered).join("|");
+        if (signature === foundSignature)
+            return;
+        foundSignature = signature;
+        found = list;
+        if (!manual && !chosenConsole)
+            pick(list.find(f => !f.registered) || list[0] || null);
+        Qt.callLater(syncConsoleBox);
+    }
+    function pick(console_) {
+        if (!console_) {
+            manual = true;
+            chosen = "";
+            return;
+        }
+        manual = false;
+        chosen = console_.address;
+        ps5 = console_.ps5;
+    }
+    function syncConsoleBox() {
+        consoleBox.currentIndex = manual ? found.length : Math.max(0, found.findIndex(f => f.address === chosen));
+    }
+    Component.onCompleted: {
+        const list = Vice.found(Chiaki.hosts);
+        foundSignature = list.map(f => f.address + f.name + f.registered).join("|");
+        found = list;
+        // An address handed in wins; the broadcast address means "whichever console answers"
+        const given = host && host !== "255.255.255.255" ? list.find(f => f.address === host) : null;
+        if (given)
+            pick(given);
+        else if (host && host !== "255.255.255.255")
+            manual = true;
+        else
+            pick(list.find(f => !f.registered) || list[0] || null);
+        syncConsoleBox();
+    }
+    Connections { target: Chiaki; function onHostsChanged() { pair.refreshFound() } }
+
     // idle | pairing | failed | done
     property string phase: "idle"
     property string failure
     property string accountId: Chiaki.settings.psnAccountId
     readonly property bool usesOnlineId: typeBox.target === 800
     readonly property bool hasAccount: usesOnlineId ? onlineIdField.text.trim().length > 0 : accountId.trim().length > 0
-    readonly property bool valid: hostField.text.trim().length > 0 && pin.complete && hasAccount && loginPin.acceptableInput
+    readonly property bool valid: address.length > 0 && pin.complete && hasAccount && loginPin.acceptableInput
     property int op: 0
 
     tab: "consoles"
@@ -35,7 +86,7 @@ V.Page {
     function submit() {
         if (!valid || phase === "pairing")
             return;
-        const address = hostField.text.trim();
+        const address = pair.address;
         const id = Vice.beginOp("pair");
         op = id;
         failure = "";
@@ -207,10 +258,26 @@ V.Page {
                 }
 
                 Field {
+                    label: pair.found.length ? qsTr("Console, found on this network") : qsTr("Console")
+                    V.Dropdown {
+                        id: consoleBox
+                        width: Theme.px(pair.manual ? 220 : 330)
+                        font.pixelSize: Theme.textLabel
+                        model: pair.found.map(f => Chiaki.settings.streamerMode ? f.name : f.name + "  ·  " + f.address).concat([qsTr("Enter an address")])
+                        onActivated: (index) => {
+                            pair.pick(index < pair.found.length ? pair.found[index] : null);
+                            if (pair.manual)
+                                hostField.forceActiveFocus(Qt.TabFocusReason);
+                        }
+                        Accessible.name: qsTr("Console")
+                    }
+                }
+                Field {
+                    visible: pair.manual
                     label: qsTr("Console address")
                     V.TextInput {
                         id: hostField
-                        width: Theme.px(230)
+                        width: Theme.px(190)
                         implicitHeight: Theme.controlHeight
                         font.pixelSize: Theme.textBody
                         text: pair.host
@@ -219,14 +286,16 @@ V.Page {
                     }
                 }
                 Field {
-                    label: qsTr("Console")
+                    label: qsTr("Type")
                     V.Dropdown {
                         id: typeBox
                         readonly property var targets: [1000100, 1000, 900, 800]
                         readonly property int target: targets[currentIndex]
-                        width: Theme.px(220)
-                        model: [qsTr("PS5"), qsTr("PS4, system 8.0 or later"), qsTr("PS4, system 7.0 to 7.5"), qsTr("PS4, before 7.0")]
+                        width: Theme.px(pair.manual ? 150 : 190)
+                        model: [qsTr("PS5"), qsTr("PS4, 8.0 or later"), qsTr("PS4, 7.0 to 7.5"), qsTr("PS4, before 7.0")]
                         currentIndex: pair.ps5 ? 0 : 1
+                        // Follows the console that was picked; still changeable for older PS4 systems
+                        Connections { target: pair; function onPs5Changed() { typeBox.currentIndex = pair.ps5 ? 0 : 1 } }
                         font.pixelSize: Theme.textLabel
                         Accessible.name: qsTr("Console type")
                     }
@@ -235,7 +304,7 @@ V.Page {
                     label: qsTr("Login PIN, if set")
                     V.TextInput {
                         id: loginPin
-                        width: Theme.px(150)
+                        width: Theme.px(pair.manual ? 120 : 150)
                         implicitHeight: Theme.controlHeight
                         font.pixelSize: Theme.textBody
                         echoMode: TextInput.Password
