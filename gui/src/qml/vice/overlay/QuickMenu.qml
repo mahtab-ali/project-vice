@@ -182,7 +182,7 @@ FocusScope {
                 }
             }
             MenuRow {
-                iconName: "image"
+                iconName: "sliders"
                 label: qsTr("Picture")
                 V.Segmented {
                     // ChiakiWindow.VideoMode: Normal, Stretch, Zoom
@@ -203,6 +203,17 @@ FocusScope {
                     checked: Chiaki.settings.showStreamStats
                     onToggled: Chiaki.settings.showStreamStats = checked
                     Accessible.name: qsTr("Latency overlay")
+                }
+            }
+            MenuRow {
+                iconName: "image"
+                label: qsTr("Clean view")
+                caption: qsTr("Nothing over the picture: no readout, hints or notices")
+                V.Toggle {
+                    implicitHeight: Theme.px(34)
+                    checked: Vice.cleanView
+                    onToggled: Vice.cleanView = checked
+                    Accessible.name: qsTr("Clean view")
                 }
             }
             MenuRow {

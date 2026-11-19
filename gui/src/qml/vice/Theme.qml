@@ -107,6 +107,12 @@ QtObject {
     // navigation key is pressed and go away again when the pointer moves, so
     // a mouse user never sees a stray ring on whatever happens to have focus.
     property bool keyboardNav: false
+    // A handheld with built-in controls (Steam Deck): focus is always shown,
+    // and effects that cost GPU time for looks alone are skipped.
+    property bool handheld: false
+    readonly property bool richEffects: !handheld && !reducedMotion
+    // Room kept clear at the top when the app draws under the window's title bar
+    property int topInset: 0
 
     // ---- Focus order ----------------------------------------------------------
     // Qt's own tab chain skips buttons on macOS unless a system setting is on,

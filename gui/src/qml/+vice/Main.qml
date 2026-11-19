@@ -308,6 +308,7 @@ Item {
 
     function showUpstreamSettings() { stack.push(settingsDialogComponent) }
     function showProfiles() { stack.push(profilesComponent) }
+    function showRemotePlay() { stack.push(remotePlayComponent) }
     function showBenchmark() { stack.push(benchmarkComponent) }
     function showConnectionCheck(entry) { stack.push(connectionCheckComponent, { entry: entry }) }
     function showChooseMode(entry) { stack.push(chooseModeComponent, { entry: entry }) }
@@ -331,7 +332,8 @@ Item {
             title: qsTr("Signed in to PSN"),
             body: qsTr("Consoles on your account pair without a PIN and can be reached away from home."),
             primary: { text: qsTr("Done") },
-            secondary: { text: qsTr("Sign in again"), run: () => showPSNTokenDialog(false) },
+            secondary: { text: qsTr("Play from anywhere"), run: () => showRemotePlay() },
+            tertiary: { text: qsTr("Sign in again"), run: () => showPSNTokenDialog(false) },
             cancel: "primary"
         });
     }
@@ -545,7 +547,38 @@ Item {
     // Focus rings follow how the user is driving the app (see Theme.keyboardNav)
     HoverHandler { onPointChanged: Theme.keyboardNav = false }
 
+    // A handheld (Steam Deck) is told by its built-in controls
+    Binding { target: Theme; property: "handheld"; value: Chiaki.controllers.some(c => c.handheld === true) }
+
+    // ---- Vice: window chrome ----------------------------------------------------
+    // Where the platform allows it (Qt 6.9+, Windows and macOS), the window keeps
+    // its own buttons but the app draws underneath the title bar, so the bar is
+    // the page's own gradient rather than a grey strip. Elsewhere nothing changes.
+    readonly property int chromeFlags: (Qt.ExpandedClientAreaHint || 0) | (Qt.NoTitleBarBackgroundHint || 0)
+    readonly property bool chromeSupported: chromeFlags !== 0 && (Qt.platform.os === "osx" || Qt.platform.os === "windows")
+    readonly property bool fullScreen: Chiaki.window.visibility === 5   // Window.FullScreen
+    readonly property bool chromeBlended: chromeSupported && Vice.blendTitleBar && !fullScreen
+
+    function applyChrome() {
+        if (!chromeSupported)
+            return;
+        const flags = Chiaki.window.flags;
+        const wanted = Vice.blendTitleBar ? (flags | chromeFlags) : (flags & ~chromeFlags);
+        if (wanted !== flags)
+            Chiaki.window.flags = wanted;
+    }
+    Connections { target: Vice; function onBlendTitleBarChanged() { root.applyChrome() } }
+    Binding { target: Theme; property: "topInset"; value: root.chromeBlended ? Theme.px(16) : 0 }
+
+    function toggleFullScreen() {
+        if (root.fullScreen)
+            Chiaki.window.showNormal();
+        else
+            Chiaki.window.showFullScreen();
+    }
+
     Component.onCompleted: {
+        applyChrome();
         Theme.keyboardNav = Chiaki.controllers.length > 0;
         controllerCount = Chiaki.controllers.length;
         if (Chiaki.session)
@@ -716,6 +749,18 @@ Item {
         }
     }
 
+    // The strip the window's own buttons sit on: a wash that fades into the page
+    Rectangle {
+        z: 40
+        width: parent.width
+        height: Theme.px(44)
+        visible: root.chromeBlended && !Chiaki.session
+        gradient: Gradient {
+            GradientStop { position: 0; color: Theme.alpha(Theme.bgDeep, 0.6) }
+            GradientStop { position: 1; color: Theme.alpha(Theme.bgDeep, 0) }
+        }
+    }
+
     // ---- Vice: the one notification host and the one dialog host ------------
 
     V.NotificationHost {
@@ -723,7 +768,7 @@ Item {
         z: 50
         inStream: Chiaki.session !== null
         // Over the stream the OpenGL renderer cannot draw QML above the video
-        visible: !(inStream && Chiaki.window.runtimeRendererBackend === 1)
+        visible: !(inStream && (Chiaki.window.runtimeRendererBackend === 1 || Vice.cleanView))
         // Over the stream: bottom left, out of the way of the quick menu.
         // On pages: top right, clear of the content column on the left.
         x: inStream ? Theme.margin - Theme.unit : parent.width - width - Theme.margin + Theme.unit
@@ -834,6 +879,7 @@ Item {
     Component { id: chooseModeComponent; Screens.ChooseMode { } }
     Component { id: profilesComponent; Screens.Profiles { } }
     Component { id: benchmarkComponent; Screens.Benchmark { } }
+    Component { id: remotePlayComponent; Screens.RemotePlay { } }
 
     Component { id: streamViewComponent; StreamView { } }
     Component { id: autoConnectViewComponent; AutoConnectView { } }

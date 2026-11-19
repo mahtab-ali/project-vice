@@ -70,7 +70,8 @@ V.Page {
         Item {
             id: picture
             anchors.fill: parent
-            layer.enabled: true
+            // The rounded mask is for looks alone, so a handheld goes without it
+            layer.enabled: Theme.richEffects
             layer.effect: MultiEffect {
                 maskEnabled: true
                 maskSource: pictureMask
@@ -78,12 +79,15 @@ V.Page {
                 maskSpreadAtMin: 1
             }
 
-            Rectangle { anchors.fill: parent; color: Theme.surfaceSolid }
+            Rectangle { anchors.fill: parent; radius: Theme.richEffects ? 0 : card.radius; color: Theme.surfaceSolid }
 
             V.Artwork {
                 id: cardArt
-                width: parent.width
-                height: Theme.px(164)
+                // Without the mask, the picture is inset so the card's corners stay round
+                x: Theme.richEffects ? 0 : Theme.px(10)
+                y: x
+                width: parent.width - x * 2
+                height: Theme.px(164) - y
                 fadeLeft: 0
                 opacity: card.selected ? 1 : 0.7
                 Behavior on opacity { NumberAnimation { duration: Theme.dur(Theme.fast) } }

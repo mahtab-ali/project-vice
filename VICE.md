@@ -13,6 +13,8 @@ Every screen below is real QML bound to the existing backend (`Chiaki`, its sett
 | Home | Console discovery, on / rest / not-found states, connect, pair, wake, add, hide or remove. The chosen console is remembered across discovery refreshes. Empty, searching and search-off states. |
 | PSN sign-in | Replaces upstream's two sign-in dialogs with one page: sign in through your browser, sign in inside the app where Qt WebEngine is present, or look the account ID up by username. The calls into the backend are upstream's. |
 | Add console, console login PIN | Vice pages over the same backend calls. |
+| Play from anywhere | A guide with the actions beside each step: PSN sign-in, or port forwarding with the ports upstream documents, then adding the console by address. Reached from Settings, Network and from the account button. |
+| Shortcuts | A Settings page listing the keyboard and controller shortcuts the app really has. |
 | Pair console | Replaces upstream's register dialog and calls the same `registerHost`. PSN sign-in and lookup reuse upstream's pages. 8-digit code entry with paste, backspace and controller entry. Success is reported only when the console accepts the code. |
 | Connection check | Real measurements: ping, jitter, packet loss and a 30-second chart, from round trips of the console's discovery request. Link type comes from the operating system and reads "Unknown" where it cannot tell (macOS). |
 | Choose mode | Game and Quality are upstream's Fast and High Quality renderer presets. A custom preset is kept unless a mode is picked. The profile selector uses upstream's settings profiles. |
@@ -26,6 +28,13 @@ Every screen below is real QML bound to the existing backend (`Chiaki`, its sett
 Five upstream pages are not rewritten: all settings, display settings, placebo settings, button mapping and the Steam shortcut. They get the Vice frame and wallpaper (`+vice/DialogView.qml`), Vice buttons, drop-downs, toggles, sliders, radio buttons and text fields (`controls/+vice/`), and the Vice palette and font. The arrangement of their options is still upstream's, and a few controls they declare directly (tab bars, some check boxes) are Material controls in Vice colours.
 
 Screenshots of every screen, rendered from the preview, are in [`screenshots/`](screenshots/).
+
+## Window, full screen and handhelds
+
+- **Title bar.** On Windows and macOS with Qt 6.9 or newer the app draws under the window's title bar, so the system's own buttons sit on the page's gradient. It is a setting (Settings, Advanced) and does nothing on Linux, where the window manager draws the frame.
+- **Full screen without a frame.** F11, or the toggle in Settings, Advanced.
+- **Clean view.** A quick-menu toggle that removes the readout, hints and notices from over the picture.
+- **Steam Deck and other handhelds.** Detected from the built-in controls. Focus is always shown, text fields ask for the on-screen keyboard, the artwork is decoded smaller and the looks-only mask on the mode cards is skipped. The layout is checked at 1280×800 in the preview (`SIZE=1280x800 ./shots.sh deck deck-mode`); it has not been run on a Deck.
 
 ## Not available yet
 

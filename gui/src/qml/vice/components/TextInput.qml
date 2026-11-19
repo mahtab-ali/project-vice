@@ -22,6 +22,9 @@ T.TextField {
     font.weight: Theme.weightBody
     opacity: enabled ? 1 : Theme.disabledOpacity
 
+    // On a handheld there is no keyboard until the on-screen one is asked for
+    onActiveFocusChanged: if (activeFocus && !readOnly && Theme.handheld) Qt.inputMethod.show()
+
     Keys.onUpPressed: (event) => Theme.navKey(control, event, true)
     Keys.onDownPressed: (event) => Theme.navKey(control, event, true)
     Keys.onTabPressed: (event) => Theme.navKey(control, event, true)

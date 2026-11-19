@@ -15,6 +15,10 @@ QtObject {
     // The preview harness turns this off so fixtures never reach disk
     property bool persist: true
     property bool reduceMotion: false
+    // Draw the app under the window's title bar, so the bar blends into the page
+    property bool blendTitleBar: true
+    // During play: no readout, no hints, no notices over the picture
+    property bool cleanView: false
     // Stable key of the console shown as the hero on Home
     property string selectedConsole: ""
     // [{ console, type, started, seconds, bitrate, loss, dropped, resolution, fps }]; null = not recorded
@@ -45,15 +49,21 @@ QtObject {
         property string history: "[]"
         property string selectedConsole: ""
         property bool reduceMotion: false
+        property bool blendTitleBar: true
+        property bool cleanView: false
     }
 
     Component.onCompleted: {
         reduceMotion = store.reduceMotion;
+        blendTitleBar = store.blendTitleBar;
+        cleanView = store.cleanView;
         selectedConsole = store.selectedConsole;
         try { history = JSON.parse(store.history); } catch (e) { history = []; }
     }
     onReduceMotionChanged: { Theme.reducedMotion = reduceMotion; if (persist) store.reduceMotion = reduceMotion; }
     onSelectedConsoleChanged: if (persist) store.selectedConsole = selectedConsole
+    onBlendTitleBarChanged: if (persist) store.blendTitleBar = blendTitleBar
+    onCleanViewChanged: if (persist) store.cleanView = cleanView
 
     function recordSession(entry) {
         history = [entry].concat(history).slice(0, historyLimit);

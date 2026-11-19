@@ -35,9 +35,9 @@ Item {
         width: height * 16 / 9
         x: art.width * art.atX - width * art.imageX
         y: Math.min(0, Math.max(art.height - height, art.height * art.atY - height * art.imageY))
-        sourceSize.height: Math.min(1440, Math.round(height))
+        sourceSize.height: Math.min(Theme.handheld ? 800 : 1440, Math.round(height))
         smooth: true
-        mipmap: true
+        mipmap: Theme.richEffects
     }
 
     Rectangle {

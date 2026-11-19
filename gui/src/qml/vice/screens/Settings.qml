@@ -35,7 +35,8 @@ V.Page {
         { id: "network", icon: "wifi", text: qsTr("Network"), title: qsTr("Network & account") },
         { id: "input", icon: "gamepad", text: qsTr("Input"), title: qsTr("Controllers & keys") },
         { id: "audio", icon: "volume", text: qsTr("Audio"), title: qsTr("Sound & microphone") },
-        { id: "advanced", icon: "sliders", text: qsTr("Advanced"), title: qsTr("Advanced") }
+        { id: "advanced", icon: "sliders", text: qsTr("Advanced"), title: qsTr("Advanced") },
+        { id: "shortcuts", icon: "search", text: qsTr("Shortcuts"), title: qsTr("Keyboard & controller shortcuts") }
     ]
     readonly property var current: categories.find(c => c.id === category) || categories[0]
 
@@ -81,9 +82,31 @@ V.Page {
               hint: qsTr("What the console is told, at most"), get: (v) => v, set: (v) => v },
             { key: "iDROnFECFailureEnabled", prop: "iDROnFECFailureEnabled", label: qsTr("Ask for a fresh frame after errors"), type: "toggle", get: (v) => v, set: (v) => v },
             { key: "portGuessingEnabled", prop: "portGuessingEnabled", label: qsTr("Guess ports when away from home"), type: "toggle", get: (v) => v, set: (v) => v, def: false },
-            { group: qsTr("Account") },
+            { group: qsTr("Away from home") },
+            { key: "remote", label: qsTr("Play from anywhere"), type: "action", text: qsTr("Set up"), hint: qsTr("PSN sign-in or port forwarding, step by step"), run: () => root.showRemotePlay() },
             { key: "psn", label: qsTr("PSN account"), type: "action", text: s.psnAuthToken ? qsTr("Signed in") : qsTr("Sign in"), run: () => root.showAccount() }
         ];
+        case "shortcuts": {
+            const combo = s.streamMenuEnabled && typeof s.stringForStreamMenuShortcut === "function" ? s.stringForStreamMenuShortcut() : "";
+            const touch = s.dpadTouchEnabled && typeof s.stringForDpadShortcut === "function" ? s.stringForDpadShortcut() : "";
+            return [
+                { group: qsTr("Anywhere") },
+                { key: "k-full", label: qsTr("Full screen, no window frame"), type: "keys", keys: ["F11"] },
+                { key: "k-quit", label: qsTr("Quit"), type: "keys", keys: ["Ctrl+Q"], visible: Qt.platform.os !== "osx" },
+                { group: qsTr("In menus") },
+                { key: "k-move", label: qsTr("Move"), type: "keys", keys: [qsTr("Arrow keys"), qsTr("D-pad")] },
+                { key: "k-select", label: qsTr("Select and go back"), type: "keys", keys: ["Enter", "Esc"] },
+                { key: "k-tabs", label: qsTr("Consoles, Sessions, Settings"), type: "keys", keys: ["Page Up", "Page Down", "L1", "R1"] },
+                { key: "k-add", label: qsTr("Add a console"), type: "keys", keys: ["F2", "R3"] },
+                { key: "k-steam", label: qsTr("Add to Steam"), type: "keys", keys: ["F1", "L3"], visible: typeof Chiaki.createSteamShortcut === "function" },
+                { group: qsTr("During play") },
+                { key: "k-menu", label: qsTr("Quick menu"), type: "keys", keys: combo ? ["Ctrl+O", combo] : ["Ctrl+O"] },
+                { key: "k-mic", label: qsTr("Microphone on or off"), type: "keys", keys: ["Ctrl+M"] },
+                { key: "k-zoom", label: qsTr("Zoom the picture"), type: "keys", keys: ["Ctrl+Z"] },
+                { key: "k-stretch", label: qsTr("Stretch the picture"), type: "keys", keys: ["Ctrl+S"] },
+                { key: "k-touch", label: qsTr("D-pad as touchpad"), type: "keys", keys: [touch], visible: touch !== "" }
+            ];
+        }
         case "input": return [
             { group: qsTr("Controls") },
             { key: "buttonsByPosition", prop: "buttonsByPosition", label: qsTr("Match buttons by position"), type: "toggle", hint: qsTr("For controllers with a different face-button layout"), get: (v) => v, set: (v) => v },
@@ -114,6 +137,10 @@ V.Page {
         ];
         default: return [
             { group: qsTr("Display") },
+            { key: "fullScreen", label: qsTr("Full screen, no window frame"), type: "toggle", local: true, hint: qsTr("F11 does the same at any time"),
+              get: () => root.fullScreen, set: () => root.toggleFullScreen() },
+            { key: "blendTitleBar", label: qsTr("Blend the title bar into the app"), type: "toggle", local: true, visible: root.chromeSupported,
+              get: () => Vice.blendTitleBar, set: (v) => Vice.blendTitleBar = v },
             { key: "windowType", prop: "windowType", label: qsTr("Window during play"), type: "choice",
               options: [qsTr("Stream resolution"), qsTr("Custom resolution"), qsTr("Resizable"), qsTr("Full screen"), qsTr("Zoom"), qsTr("Stretch")], get: (v) => v, set: (v) => v },
             { key: "vSyncEnabled", prop: "vSyncEnabled", label: qsTr("V-sync"), type: "toggle", get: (v) => v, set: (v) => v },
@@ -124,6 +151,8 @@ V.Page {
             { key: "showStreamStats", prop: "showStreamStats", label: qsTr("Latency overlay"), type: "toggle", get: (v) => v, set: (v) => v },
             { key: "streamerMode", prop: "streamerMode", label: qsTr("Hide addresses and IDs"), type: "toggle", get: (v) => v, set: (v) => v },
             { key: "reduceMotion", label: qsTr("Reduce motion"), type: "toggle", local: true, get: () => Vice.reduceMotion, set: (v) => Vice.reduceMotion = v },
+            { key: "steam", label: qsTr("Add to Steam"), type: "action", text: qsTr("Open"), visible: typeof Chiaki.createSteamShortcut === "function",
+              hint: qsTr("A Steam entry with artwork and a controller layout"), run: () => root.showSteamShortcutDialog(false) },
             { key: "all", label: qsTr("All settings"), type: "action", text: qsTr("Open"), hint: qsTr("Everything upstream chiaki-ng offers"), run: () => root.showUpstreamSettings() }
         ];
         }
@@ -218,7 +247,7 @@ V.Page {
                 required property var modelData
                 readonly property bool current: modelData.id === page.category
                 width: nav.width
-                height: Theme.px(48)
+                height: Theme.px(44)
                 radius: height / 2
                 color: current ? Theme.pink : "transparent"
                 activeFocusOnTab: true
@@ -322,7 +351,8 @@ V.Page {
                         : row.modelData.type === "segmented" ? segmentedRow
                         : row.modelData.type === "range" ? rangeRow
                         : row.modelData.type === "toggle" ? toggleRow
-                        : row.modelData.type === "action" ? actionRow : infoRow
+                        : row.modelData.type === "action" ? actionRow
+                        : row.modelData.type === "keys" ? keysRow : infoRow
                     property var spec: row.modelData
                     property real shown: page.revision >= 0 && row.modelData.get ? row.modelData.get(row.modelData.prop ? page.value(row.modelData.prop) : undefined) : 0
                     onActiveFocusChanged: if (activeFocus) list.positionViewAtIndex(row.index, ListView.Contain)
@@ -410,6 +440,23 @@ V.Page {
         }
     }
     Component {
+        id: keysRow
+        Row {
+            spacing: Theme.unit
+            Repeater {
+                model: spec.keys
+                Rectangle {
+                    required property string modelData
+                    width: keyLabel.implicitWidth + Theme.unit * 3
+                    height: Theme.px(30)
+                    radius: Theme.px(8)
+                    color: Theme.alpha(Theme.text, 0.1)
+                    V.Label { id: keyLabel; anchors.centerIn: parent; text: parent.modelData; font.pixelSize: Theme.textLabel; font.weight: Theme.weightStrong }
+                }
+            }
+        }
+    }
+    Component {
         id: infoRow
         V.Label { text: spec.text || ""; font.weight: Theme.weightStrong }
     }
@@ -421,6 +468,7 @@ V.Page {
 
         V.Button {
             width: Theme.px(326)
+            visible: page.category !== "shortcuts"
             text: qsTr("Save changes")
             font.pixelSize: Theme.px(26)
             enabled: page.dirty
@@ -431,6 +479,7 @@ V.Page {
             kind: "outline"
             width: Theme.px(266)
             implicitHeight: Theme.px(46)
+            visible: page.category !== "shortcuts"
             text: qsTr("Reset defaults")
             onTriggered: page.resetDefaults()
         }

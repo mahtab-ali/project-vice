@@ -58,6 +58,7 @@
     <file>vice/screens/Pair.qml</file>
     <file>vice/screens/Profiles.qml</file>
     <file>vice/screens/PsnSignIn.qml</file>
+    <file>vice/screens/RemotePlay.qml</file>
     <file>vice/screens/Sessions.qml</file>
     <file>vice/screens/Settings.qml</file>
   </qresource>

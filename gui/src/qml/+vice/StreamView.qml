@@ -981,7 +981,7 @@ Item {
     Overlay.LatencyOverlay {
         x: Theme.px(28)
         y: Theme.px(24)
-        visible: streamStatsVisible && !useSeparateMenuWindow && !sessionLoading && !sessionError
+        visible: streamStatsVisible && !Vice.cleanView && !useSeparateMenuWindow && !sessionLoading && !sessionError
     }
 
     // vice: how to reach the quick menu, shown briefly once the picture is up
@@ -989,7 +989,7 @@ Item {
         id: quickMenuHint
         anchors { right: parent.right; bottom: parent.bottom; rightMargin: Theme.px(30); bottomMargin: Theme.px(30) }
         spacing: Theme.unit * 1.5
-        visible: opacity > 0 && !useSeparateMenuWindow
+        visible: opacity > 0 && !useSeparateMenuWindow && !Vice.cleanView
         opacity: hintTimer.running && !sessionLoading && !sessionError && !menuController.open ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.dur(Theme.normal) } }
 

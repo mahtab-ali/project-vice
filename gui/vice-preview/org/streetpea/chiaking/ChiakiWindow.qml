@@ -18,6 +18,10 @@ QtObject {
     property int videoPreset: 2
     property real zoomFactor: 0
     property string title: "chiaki-ng"
+    property int flags: 0
+    property int visibility: 2
+    function showFullScreen() { visibility = 5 }
+    function showNormal() { visibility = 2 }
     property int grabs: 0
 
     function grabInput() { grabs++ }

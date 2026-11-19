@@ -76,7 +76,7 @@ FocusScope {
 
     Item {
         id: header
-        anchors { top: parent.top; left: parent.left; right: parent.right }
+        anchors { top: parent.top; topMargin: Theme.topInset; left: parent.left; right: parent.right }
         height: Theme.headerHeight
 
         Wordmark {
@@ -115,24 +115,32 @@ FocusScope {
             }
         }
 
+        // Account: says whether PSN is connected, and is the way in to signing in
         Rectangle {
-            anchors { right: parent.right; rightMargin: Theme.margin - Theme.unit; top: parent.top; topMargin: Theme.px(18) }
-            width: Theme.px(40)
-            height: width
-            radius: width / 2
-            color: accountTap.pressed ? Theme.alpha(Theme.text, 0.2) : Theme.alpha(Theme.bgDeep, 0.6)
-            border.width: Math.max(2, Theme.px(2))
-            border.color: Theme.text
+            id: account
+            readonly property bool signedIn: Chiaki.settings.psnAuthToken ? true : false
+            anchors { right: parent.right; rightMargin: Theme.margin - Theme.unit; top: parent.top; topMargin: Theme.px(20) }
+            width: accountRow.implicitWidth + Theme.unit * 4
+            height: Theme.px(36)
+            radius: height / 2
+            color: accountTap.pressed ? Theme.alpha(Theme.text, 0.2) : Theme.alpha(Theme.bgDeep, 0.55)
+            border.width: signedIn ? 0 : Theme.border
+            border.color: Theme.alpha(Theme.text, 0.6)
             Accessible.role: Accessible.Button
-            Accessible.name: Chiaki.settings.psnAccountId ? qsTr("PSN account, signed in") : qsTr("Sign in to PSN")
+            Accessible.name: signedIn ? qsTr("PSN connected. Account options") : qsTr("Sign in to PSN")
 
-            Icon { anchors.centerIn: parent; name: "user"; size: Theme.px(24); weight: 2.2 }
-            Rectangle {
-                visible: Chiaki.settings.psnAccountId ? true : false
-                anchors { right: parent.right; bottom: parent.bottom }
-                width: Theme.px(12); height: width; radius: width / 2
-                color: Theme.online
-                border.width: Theme.px(2); border.color: Theme.bg
+            Row {
+                id: accountRow
+                anchors.centerIn: parent
+                spacing: Theme.unit * 1.25
+                StatusDot { anchors.verticalCenter: parent.verticalCenter; visible: account.signedIn; width: Theme.px(10); state: "on" }
+                Icon { anchors.verticalCenter: parent.verticalCenter; visible: !account.signedIn; name: "user"; size: Theme.px(20); weight: 2.2 }
+                Label {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: account.signedIn ? qsTr("PSN connected") : qsTr("Sign in")
+                    font.pixelSize: Theme.textLabel
+                    font.weight: Theme.weightStrong
+                }
             }
             TapHandler { id: accountTap; onTapped: root.showAccount() }
         }
@@ -172,7 +180,8 @@ FocusScope {
             StatusItem {
                 iconName: "gamepad"
                 text: !Chiaki.controllers.length ? qsTr("No controller")
-                    : Chiaki.controllers.some(c => c.dualSense) ? qsTr("DualSense connected") : qsTr("Controller connected")
+                    : Chiaki.controllers.some(c => c.dualSense) ? qsTr("DualSense connected")
+                    : Theme.handheld ? qsTr("Built-in controls") : qsTr("Controller connected")
             }
             Divider { visible: pingItem.visible }
             StatusItem {

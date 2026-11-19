@@ -73,7 +73,7 @@ Item {
 
     Item {
         id: toolBar
-        anchors { top: parent.top; left: parent.left; right: parent.right }
+        anchors { top: parent.top; topMargin: Theme.topInset; left: parent.left; right: parent.right }
         height: Theme.px(92)
 
         V.Button {
