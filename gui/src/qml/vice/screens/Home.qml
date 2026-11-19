@@ -154,7 +154,7 @@ V.Page {
             height: Theme.px(94)
             x: Theme.px(4)
             activeFocusOnTab: true
-            color: activeFocus ? Theme.highlight : Theme.surfaceSoft
+            color: activeFocus && Theme.keyboardNav ? Theme.highlight : Theme.surfaceSoft
             Accessible.role: Accessible.ListItem
             Accessible.name: modelData.host.name + ", " + Vice.stateText(modelData.host)
 

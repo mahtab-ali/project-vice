@@ -108,7 +108,7 @@ V.Page {
             Rectangle {
                 anchors.fill: parent
                 radius: Theme.px(10)
-                color: !row.current ? "transparent" : list.activeFocus ? Theme.alpha(Theme.pink, 0.26) : Theme.highlight
+                color: !row.current ? "transparent" : list.activeFocus && Theme.keyboardNav ? Theme.alpha(Theme.pink, 0.26) : Theme.highlight
             }
             Rectangle { visible: !row.current; anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.divider }
             TapHandler { onTapped: { page.selected = row.index; list.forceActiveFocus() } }

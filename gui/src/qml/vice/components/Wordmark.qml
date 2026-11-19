@@ -2,25 +2,30 @@
 import QtQuick
 import ".."
 
+// "PROJECT VICE", stacked, with the short pink dash. Real text in an
+// open-licensed font (Bungee, SIL OFL), not a drawn logo.
 Item {
     id: mark
-    implicitWidth: Theme.px(138)
-    implicitHeight: Math.round(implicitWidth * 684 / 1451)
+    implicitWidth: Theme.px(150)
+    implicitHeight: Theme.px(62)
 
     Accessible.name: Theme.appName
     Accessible.role: Accessible.Graphic
 
-    Image {
-        anchors.fill: parent
-        source: "../images/wordmark.svg"
-        sourceSize: Qt.size(width, height)
+    component Line: Text {
+        color: Theme.text
+        font.family: Theme.wordmarkFamily
+        font.pixelSize: Theme.px(31)
+        lineHeight: 0.9
     }
 
+    Line { id: top; text: "PROJECT" }
+    Line { id: bottom; y: Theme.px(29); text: "VICE" }
+
     Rectangle {
-        x: mark.width * 0.588
-        y: mark.height * 0.541
-        width: mark.width * 0.409
-        height: mark.height * 0.145
+        anchors { left: bottom.right; leftMargin: Theme.px(8); verticalCenter: bottom.verticalCenter }
+        width: top.width - bottom.width - Theme.px(8)
+        height: Theme.px(9)
         radius: Theme.px(2)
         color: Theme.dash
     }

@@ -40,9 +40,5 @@ chiaki.conf
 *.vscode
 site/
 
-# vice: approved mockups and briefs stay local
-/design/
-# vice: third-party artwork is fetched per machine, never committed (gui/src/qml/vice/artwork/SOURCE.md)
-/gui/src/qml/vice/artwork/key-art.jpg
-# vice: rendered preview screenshots
+# vice: full-size preview renders; the curated set lives in /screenshots
 /gui/vice-preview/shots/

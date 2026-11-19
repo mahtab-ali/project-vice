@@ -63,6 +63,14 @@ Item {
         }
     }
 
+    // The same strip of key art the Vice settings page carries, behind the header
+    V.Artwork {
+        width: parent.width
+        height: Theme.px(170)
+        imageX: 1; imageY: 0.36; atX: 1; atY: 0.5; zoom: 3.6
+        fadeStart: 0.5; fadeLeft: 0.86; fadeBottom: 0.6
+    }
+
     Item {
         id: toolBar
         anchors { top: parent.top; left: parent.left; right: parent.right }
@@ -113,7 +121,6 @@ Item {
             }
         }
 
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Theme.border; color: Theme.alpha(Theme.text, 0.1) }
     }
 
     Item {

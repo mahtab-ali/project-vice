@@ -41,6 +41,10 @@ QtObject {
     signal showPsnView()
     signal psnCredsExpired()
     signal sessionPinDialogRequested()
+    signal psnLoginAccountIdDone(string accountId)
+    signal psnLoginAccountIdError(string error)
+    // What the next PSN sign-in does: "ok" | "fail" | "hang"
+    property string psnOutcome: "ok"
     signal sessionStopDialogRequested()
 
     property var settings: QtObject {
@@ -92,6 +96,7 @@ QtObject {
         property int audioVideoDisabled: 0
         property int disconnectAction: 2
         property real sZoomFactor: 0
+        property var registeredHosts: [{ name: "Living room", mac: "aa:bb:cc:dd:ee:ff" }]
         property var profiles: ["default", "GTA VI", "create new profile"]
         property string currentProfile: ""
         function deleteProfile(name) { profiles = profiles.filter(p => p !== name) }
@@ -144,6 +149,23 @@ QtObject {
         return true;
     }
     function autoRegister() { console.log("autoRegister") }
+    function addManualHost(index, address) { console.log("addManualHost", index, address) }
+    function setConsolePin(index, pin) { console.log("setConsolePin", index) }
+    function openPsnLink() { console.log("openPsnLink"); return "https://example.invalid/psn-sign-in" }
+    function psnLoginUrl() { return "about:blank" }
+    function checkPsnRedirectURL(url) { return false }
+    function setWebEngineHints(profile) { }
+    function clearCookies(profile) { }
+    function initPsnAuth(url, callback) {
+        console.log("initPsnAuth");
+        if (psnOutcome === "hang") { callback("Asking PlayStation Network for a token", false, false); return; }
+        if (psnOutcome === "ok") settings.psnAuthToken = "token";
+        callback(psnOutcome === "ok" ? "Signed in" : "The address was not a PlayStation sign-in redirect", psnOutcome === "ok", true);
+    }
+    function handlePsnLoginRedirect(url) {
+        if (psnOutcome === "ok") psnLoginAccountIdDone("AAAAAAAAAAA=");
+        else if (psnOutcome === "fail") psnLoginAccountIdError("The address was not a PlayStation sign-in redirect");
+    }
     function stopAutoConnect() { console.log("stopAutoConnect") }
     function sessionGoHome() { console.log("sessionGoHome") }
     function enterPin(pin) { console.log("enterPin") }

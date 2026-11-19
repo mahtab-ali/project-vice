@@ -542,7 +542,11 @@ Item {
         }
     }
 
+    // Focus rings follow how the user is driving the app (see Theme.keyboardNav)
+    HoverHandler { onPointChanged: Theme.keyboardNav = false }
+
     Component.onCompleted: {
+        Theme.keyboardNav = Chiaki.controllers.length > 0;
         controllerCount = Chiaki.controllers.length;
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);

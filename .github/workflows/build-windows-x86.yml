@@ -2,7 +2,6 @@ name: Build chiaki-ng Windows x86_64 (VC)
 
 on:
   workflow_dispatch:
-  workflow_call: # vice hook: lets vice-ci.yml reuse this build
 
 permissions:
   contents: read

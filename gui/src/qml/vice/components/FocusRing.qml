@@ -12,6 +12,6 @@ Rectangle {
     color: "transparent"
     border.color: Theme.text
     border.width: Theme.focusWidth
-    opacity: active ? 1 : 0
+    opacity: active && Theme.keyboardNav ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Theme.dur(Theme.fast) } }
 }

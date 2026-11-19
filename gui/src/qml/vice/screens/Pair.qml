@@ -95,6 +95,8 @@ V.Page {
     }
 
     Component { id: psnLoginComponent; Upstream.PSNLoginDialog { } }
+    function signIn() { stack.push(psnLoginComponent, { login: true, callback: (id) => pair.accountId = id }) }
+    function lookUp() { stack.push(psnLoginComponent, { login: false, callback: (id) => pair.accountId = id }) }
 
     Flickable {
         anchors { fill: parent; leftMargin: Theme.margin; rightMargin: Theme.margin }
@@ -148,13 +150,13 @@ V.Page {
                     id: signInButton
                     size: "sm"
                     text: qsTr("Sign in to PSN")
-                    onTriggered: stack.push(psnLoginComponent, { login: true, callback: (id) => pair.accountId = id })
+                    onTriggered: pair.signIn()
                 }
                 V.Button {
                     size: "sm"
                     kind: "outline"
                     text: qsTr("Look up")
-                    onTriggered: stack.push(psnLoginComponent, { login: false, callback: (id) => pair.accountId = id })
+                    onTriggered: pair.lookUp()
                 }
             }
 

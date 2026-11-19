@@ -80,7 +80,7 @@ V.Page {
             { key: "packetLossReportedMax", prop: "packetLossReportedMax", label: qsTr("Most packet loss reported"), type: "range", from: 0, to: 100, unit: "%",
               hint: qsTr("What the console is told, at most"), get: (v) => v, set: (v) => v },
             { key: "iDROnFECFailureEnabled", prop: "iDROnFECFailureEnabled", label: qsTr("Ask for a fresh frame after errors"), type: "toggle", get: (v) => v, set: (v) => v },
-            { key: "portGuessingEnabled", prop: "portGuessingEnabled", label: qsTr("Guess ports for play away from home"), type: "toggle", get: (v) => v, set: (v) => v, def: false },
+            { key: "portGuessingEnabled", prop: "portGuessingEnabled", label: qsTr("Guess ports when away from home"), type: "toggle", get: (v) => v, set: (v) => v, def: false },
             { group: qsTr("Account") },
             { key: "psn", label: qsTr("PSN account"), type: "action", text: s.psnAuthToken ? qsTr("Signed in") : qsTr("Sign in"), run: () => root.showAccount() }
         ];
@@ -226,7 +226,7 @@ V.Page {
                 Accessible.name: modelData.text
                 Accessible.selected: current
 
-                function pick() { page.category = modelData.id }
+                function pick() { page.category = modelData.id; forceActiveFocus() }
                 Keys.onReturnPressed: pick()
                 Keys.onRightPressed: { pick(); const first = Theme.firstFocusable(list); if (first) first.forceActiveFocus(Qt.TabFocusReason) }
                 Keys.onPressed: (event) => Theme.navKey(navItem, event, true)

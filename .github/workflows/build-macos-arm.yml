@@ -2,7 +2,6 @@ name: Build chiaki-ng macOSX arm64
 
 on:
   workflow_dispatch:
-  workflow_call: # vice hook: lets vice-ci.yml reuse this build
 
 permissions:
   contents: read

@@ -196,6 +196,9 @@ Item {
         id: loadingView
         anchors.fill: parent
         color: Theme.bg   // vice
+
+        // vice: wallpaper behind the connecting state
+        V.Artwork { anchors.fill: parent; dim: 0.6; fadeLeft: 0.7 }
         opacity: sessionError || sessionLoading || (Chiaki.settings.audioVideoDisabled & 0x02) ? 1.0 : 0.0
         visible: opacity
 

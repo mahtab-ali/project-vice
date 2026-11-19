@@ -58,6 +58,9 @@ QtObject {
     // Type: Rubik, heavy for display, medium for reading
     readonly property FontLoader fontLoader: FontLoader { source: "fonts/Rubik.ttf" }
     readonly property string family: fontLoader.status === FontLoader.Ready ? fontLoader.font.family : Qt.application.font.family
+    // The wordmark is plain text set in Bungee, an open-licensed signage face
+    readonly property FontLoader wordmarkLoader: FontLoader { source: "fonts/Bungee.ttf" }
+    readonly property string wordmarkFamily: wordmarkLoader.status === FontLoader.Ready ? wordmarkLoader.font.family : family
     readonly property int textHero: px(66)
     readonly property int textDisplay: px(54)
     readonly property int textHeadline: px(40)
@@ -98,6 +101,12 @@ QtObject {
     readonly property int toastsVisible: 3
     readonly property int toastsVisibleInStream: 1
     readonly property int toastsQueued: 8
+
+    // ---- Focus visibility -----------------------------------------------------
+    // Focus rings are for keyboard and controller use. They appear once a
+    // navigation key is pressed and go away again when the pointer moves, so
+    // a mouse user never sees a stray ring on whatever happens to have focus.
+    property bool keyboardNav: false
 
     // ---- Focus order ----------------------------------------------------------
     // Qt's own tab chain skips buttons on macOS unless a system setting is on,
@@ -162,6 +171,7 @@ QtObject {
         case Qt.Key_Backtab: forward = false; break;
         default: return;
         }
+        keyboardNav = true;
         moveFocus(item, forward);
         event.accepted = true;
     }

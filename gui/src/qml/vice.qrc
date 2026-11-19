@@ -1,16 +1,26 @@
 <RCC>
   <qresource prefix="/">
     <file>+vice/AutoConnectView.qml</file>
+    <file>+vice/ConsolePinDialog.qml</file>
     <file>+vice/DialogView.qml</file>
     <file>+vice/Main.qml</file>
+    <file>+vice/ManualHostDialog.qml</file>
+    <file>+vice/PSNLoginDialog.qml</file>
+    <file>+vice/PSNTokenDialog.qml</file>
+    <file>+vice/PsnView.qml</file>
     <file>+vice/StreamMenuWindow.qml</file>
     <file>+vice/StreamView.qml</file>
     <file>controls/+vice/Button.qml</file>
+    <file>controls/+vice/CheckBox.qml</file>
+    <file>controls/+vice/ComboBox.qml</file>
+    <file>controls/+vice/RadioButton.qml</file>
+    <file>controls/+vice/Slider.qml</file>
+    <file>controls/+vice/TextField.qml</file>
     <file>vice/qmldir</file>
     <file>vice/Theme.qml</file>
     <file>vice/Vice.qml</file>
     <file>vice/fonts/Rubik.ttf</file>
-    <file>vice/images/wordmark.svg</file>
+    <file>vice/fonts/Bungee.ttf</file>
     <file>vice/components/AlertDialog.qml</file>
     <file>vice/components/Artwork.qml</file>
     <file>vice/components/Button.qml</file>
@@ -27,6 +37,7 @@
     <file>vice/components/Page.qml</file>
     <file>vice/components/Panel.qml</file>
     <file>vice/components/PinEntry.qml</file>
+    <file>vice/components/Radio.qml</file>
     <file>vice/components/ProgressState.qml</file>
     <file>vice/components/Segmented.qml</file>
     <file>vice/components/Slider.qml</file>
@@ -46,6 +57,7 @@
     <file>vice/screens/Home.qml</file>
     <file>vice/screens/Pair.qml</file>
     <file>vice/screens/Profiles.qml</file>
+    <file>vice/screens/PsnSignIn.qml</file>
     <file>vice/screens/Sessions.qml</file>
     <file>vice/screens/Settings.qml</file>
   </qresource>
