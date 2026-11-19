@@ -22,6 +22,8 @@ Item {
         "plus": "M12 5v14 M5 12h14",
         "check": "M20 6L9 17l-5-5",
         "close": "M18 6L6 18 M6 6l12 12",
+        "minus": "M5 12h14",
+        "square": "M6 6h12v12H6z",
         "bang": "M12 7v6 M12 17h.01",
         "question": "M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3 M12 17h.01",
         "i": "M12 11v6 M12 7h.01",

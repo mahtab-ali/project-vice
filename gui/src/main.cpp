@@ -13,6 +13,9 @@
 int real_main(int argc, char *argv[]);
 int main(int argc, char *argv[]) { return real_main(argc, argv); }
 
+#ifdef CHIAKI_VICE_UI
+#include "vice/brand.h" // vice hook
+#endif
 #include <streamsession.h>
 #include <settings.h>
 #include <host.h>
@@ -73,10 +76,17 @@ int real_main(int argc, char *argv[])
 	qRegisterMetaType<ChiakiRegistEventType>();
 	qRegisterMetaType<ChiakiLogLevel>();
 
+#ifdef CHIAKI_VICE_UI // vice hook: the product's own name, and with it its own settings location
+	QGuiApplication::setOrganizationName(VICE_APP_NAME);
+	QGuiApplication::setApplicationName(VICE_APP_NAME);
+	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
+	QGuiApplication::setApplicationDisplayName(VICE_APP_NAME);
+#else
 	QGuiApplication::setOrganizationName("Chiaki");
 	QGuiApplication::setApplicationName("Chiaki");
 	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
 	QGuiApplication::setApplicationDisplayName("chiaki-ng");
+#endif
 #if defined(Q_OS_MACOS)
 	// Use a plain CAMetalLayer for Vulkan windows. Qt's own layer presents in step with each
 	// live resize, but our swapchain presents from the render thread, so every resize step
@@ -97,7 +107,11 @@ int real_main(int argc, char *argv[])
 		QGuiApplication::setDesktopFileName(qEnvironmentVariable("FLATPAK_ID"));
 	else
 #endif
+#ifdef CHIAKI_VICE_UI // vice hook
+		QGuiApplication::setDesktopFileName(VICE_DESKTOP_FILE);
+#else
 		QGuiApplication::setDesktopFileName("chiaki-ng");
+#endif
 
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
 #if defined(Q_OS_WIN)
@@ -143,10 +157,17 @@ int real_main(int argc, char *argv[])
 #endif
 	QApplication app(argc, argv);
 
+#ifdef CHIAKI_VICE_UI // vice hook: the Project Vice name and icon; macOS takes the icon from the app bundle
+	viceInstallBranding();
+#ifndef Q_OS_MACOS
+	QGuiApplication::setWindowIcon(QIcon(":/vice/images/icon.png"));
+#endif
+#else
 #ifdef Q_OS_MACOS
 	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking_macos.svg"));
 #else
 	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking.svg"));
+#endif
 #endif
 
 	QCommandLineParser parser;
@@ -204,7 +225,11 @@ int real_main(int argc, char *argv[])
 		settings.SetCurrentProfile(parser.value(profile_option));
 	Settings alt_settings(parser.isSet(profile_option) ? "" : settings.GetCurrentProfile());
 	if(!settings.GetCurrentProfile().isEmpty())
+#ifdef CHIAKI_VICE_UI // vice hook
+		QGuiApplication::setApplicationDisplayName(QString(VICE_APP_NAME ": %1").arg(settings.GetCurrentProfile()));
+#else
 		QGuiApplication::setApplicationDisplayName(QString("chiaki-ng:%1").arg(settings.GetCurrentProfile()));
+#endif
 	bool use_alt_settings = false;
 	if(!parser.isSet(profile_option))
 		use_alt_settings = true;

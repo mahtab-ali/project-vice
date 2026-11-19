@@ -26,8 +26,7 @@ V.Page {
     tab: "settings"
     showStatus: true
     initialFocus: navRepeater.count ? navRepeater.itemAt(Math.max(0, categories.findIndex(c => c.id === category))) : null
-    artworkHeight: Theme.px(170)
-    artwork { imageX: 1; imageY: 0.36; atX: 1; atY: 0.5; zoom: 3.6; fadeStart: 0.56; fadeLeft: 0.86; fadeBottom: 0.6 }
+    artwork.preset: "palms"
     onBack: confirmLeave(() => root.showTab("consoles")) && root.showTab("consoles")
 
     readonly property var categories: [
@@ -140,6 +139,7 @@ V.Page {
             { key: "fullScreen", label: qsTr("Full screen, no window frame"), type: "toggle", local: true, hint: qsTr("F11 does the same at any time"),
               get: () => root.fullScreen, set: () => root.toggleFullScreen() },
             { key: "blendTitleBar", label: qsTr("Blend the title bar into the app"), type: "toggle", local: true, visible: root.chromeSupported,
+              hint: qsTr("Off brings back the system title bar"),
               get: () => Vice.blendTitleBar, set: (v) => Vice.blendTitleBar = v },
             { key: "windowType", prop: "windowType", label: qsTr("Window during play"), type: "choice",
               options: [qsTr("Stream resolution"), qsTr("Custom resolution"), qsTr("Resizable"), qsTr("Full screen"), qsTr("Zoom"), qsTr("Stretch")], get: (v) => v, set: (v) => v },
@@ -153,7 +153,7 @@ V.Page {
             { key: "reduceMotion", label: qsTr("Reduce motion"), type: "toggle", local: true, get: () => Vice.reduceMotion, set: (v) => Vice.reduceMotion = v },
             { key: "steam", label: qsTr("Add to Steam"), type: "action", text: qsTr("Open"), visible: typeof Chiaki.createSteamShortcut === "function",
               hint: qsTr("A Steam entry with artwork and a controller layout"), run: () => root.showSteamShortcutDialog(false) },
-            { key: "all", label: qsTr("All settings"), type: "action", text: qsTr("Open"), hint: qsTr("Everything upstream chiaki-ng offers"), run: () => root.showUpstreamSettings() }
+            { key: "all", label: qsTr("All settings"), type: "action", text: qsTr("Open"), hint: qsTr("Every option, including consoles, keys and export"), run: () => root.showUpstreamSettings() }
         ];
         }
     }

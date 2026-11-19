@@ -551,30 +551,40 @@ Item {
     Binding { target: Theme; property: "handheld"; value: Chiaki.controllers.some(c => c.handheld === true) }
 
     // ---- Vice: window chrome ----------------------------------------------------
-    // Where the platform allows it (Qt 6.9+, Windows and macOS), the window keeps
-    // its own buttons but the app draws underneath the title bar, so the bar is
-    // the page's own gradient rather than a grey strip. Elsewhere nothing changes.
-    readonly property int chromeFlags: (Qt.ExpandedClientAreaHint || 0) | (Qt.NoTitleBarBackgroundHint || 0)
-    readonly property bool chromeSupported: chromeFlags !== 0 && (Qt.platform.os === "osx" || Qt.platform.os === "windows")
+    // The system title bar is turned off and the app draws the window's controls
+    // itself (components/TitleBar.qml), so the top of the window is the same
+    // picture and gradient as the rest. A setting turns the system bar back on.
+    // A handheld runs full screen and is left alone.
+    readonly property bool chromeSupported: !Theme.handheld
+    readonly property bool frameless: chromeSupported && Vice.blendTitleBar
     readonly property bool fullScreen: Chiaki.window.visibility === 5   // Window.FullScreen
-    readonly property bool chromeBlended: chromeSupported && Vice.blendTitleBar && !fullScreen
+    readonly property bool maximized: Chiaki.window.visibility === 4    // Window.Maximized
+    readonly property bool chromeBlended: frameless && !fullScreen
 
     function applyChrome() {
-        if (!chromeSupported)
-            return;
         const flags = Chiaki.window.flags;
-        const wanted = Vice.blendTitleBar ? (flags | chromeFlags) : (flags & ~chromeFlags);
+        if (flags === undefined)
+            return;
+        // Without a frame the window still needs to be allowed to minimise, maximise and close
+        const framelessFlags = Qt.FramelessWindowHint | Qt.WindowSystemMenuHint | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint;
+        const wanted = frameless ? (flags | framelessFlags) : (flags & ~Qt.FramelessWindowHint);
         if (wanted !== flags)
             Chiaki.window.flags = wanted;
     }
-    Connections { target: Vice; function onBlendTitleBarChanged() { root.applyChrome() } }
-    Binding { target: Theme; property: "topInset"; value: root.chromeBlended ? Theme.px(16) : 0 }
+    onFramelessChanged: applyChrome()
+    Binding { target: Theme; property: "topInset"; value: !root.chromeBlended ? 0 : Qt.platform.os === "osx" ? Theme.px(10) : Theme.px(20) }
 
     function toggleFullScreen() {
         if (root.fullScreen)
             Chiaki.window.showNormal();
         else
             Chiaki.window.showFullScreen();
+    }
+    function toggleMaximized() {
+        if (root.maximized)
+            Chiaki.window.showNormal();
+        else
+            Chiaki.window.showMaximized();
     }
 
     Component.onCompleted: {
@@ -749,15 +759,35 @@ Item {
         }
     }
 
-    // The strip the window's own buttons sit on: a wash that fades into the page
-    Rectangle {
-        z: 40
+    // The window's own controls. Over a stream they show only while the pointer is at the top.
+    HoverHandler { id: topEdge; margin: 0; enabled: root.chromeBlended; onPointChanged: topEdge.near = point.position.y < Theme.px(40) ; property bool near: false }
+    V.TitleBar {
+        z: 45
         width: parent.width
-        height: Theme.px(44)
-        visible: root.chromeBlended && !Chiaki.session
-        gradient: Gradient {
-            GradientStop { position: 0; color: Theme.alpha(Theme.bgDeep, 0.6) }
-            GradientStop { position: 1; color: Theme.alpha(Theme.bgDeep, 0) }
+        visible: root.chromeBlended && (!Chiaki.session || topEdge.near)
+        onMaximizeToggled: root.toggleMaximized()
+    }
+
+    // Without a frame, the edges resize the window. macOS does this itself.
+    Repeater {
+        model: root.chromeBlended && !root.maximized && Qt.platform.os !== "osx" ? [
+            { edges: Qt.LeftEdge, cursor: Qt.SizeHorCursor }, { edges: Qt.RightEdge, cursor: Qt.SizeHorCursor },
+            { edges: Qt.TopEdge, cursor: Qt.SizeVerCursor }, { edges: Qt.BottomEdge, cursor: Qt.SizeVerCursor },
+            { edges: Qt.LeftEdge | Qt.TopEdge, cursor: Qt.SizeFDiagCursor }, { edges: Qt.RightEdge | Qt.BottomEdge, cursor: Qt.SizeFDiagCursor },
+            { edges: Qt.RightEdge | Qt.TopEdge, cursor: Qt.SizeBDiagCursor }, { edges: Qt.LeftEdge | Qt.BottomEdge, cursor: Qt.SizeBDiagCursor }
+        ] : []
+        MouseArea {
+            required property var modelData
+            readonly property int grip: Theme.px(5)
+            readonly property bool horizontal: (modelData.edges & (Qt.LeftEdge | Qt.RightEdge)) !== 0
+            readonly property bool vertical: (modelData.edges & (Qt.TopEdge | Qt.BottomEdge)) !== 0
+            z: 46
+            x: modelData.edges & Qt.RightEdge ? root.width - grip : 0
+            y: modelData.edges & Qt.BottomEdge ? root.height - grip : 0
+            width: horizontal ? grip : root.width
+            height: vertical ? grip : root.height
+            cursorShape: modelData.cursor
+            onPressed: Chiaki.window.startSystemResize(modelData.edges)
         }
     }
 

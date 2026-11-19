@@ -15,7 +15,7 @@ V.Page {
     tab: "settings"
     showStatus: false
     initialFocus: signedIn ? addButton : signInButton
-    artwork { imageX: 1; imageY: 0.36; atX: 1; atY: 0.44; zoom: 1.6; fadeStart: 0.62; fadeLeft: 0.9 }
+    artwork.preset: "palms"
     onBack: stack.pop()
 
     readonly property bool signedIn: Chiaki.settings.psnAuthToken ? true : false

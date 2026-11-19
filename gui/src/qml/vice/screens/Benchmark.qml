@@ -13,7 +13,7 @@ V.Page {
 
     tab: "sessions"
     initialFocus: results ? saveButton : unavailable.primaryButton
-    artwork { imageX: 1; imageY: 0.42; atX: 1; atY: 0.5; zoom: 1.6; fadeStart: 0.6; fadeLeft: 0.9 }
+    artwork.preset: "palms"
     onBack: stack.pop()
 
     readonly property var results: Vice.benchmark
@@ -45,9 +45,7 @@ V.Page {
         width: exampleLabel.implicitWidth + Theme.unit * 5
         height: Theme.px(36)
         radius: height / 2
-        color: Theme.alpha(Theme.bgDeep, 0.6)
-        border.width: Math.max(2, Theme.px(2))
-        border.color: Theme.text
+        color: Theme.alpha(Theme.text, 0.13)
         V.Label { id: exampleLabel; anchors.centerIn: parent; text: qsTr("Example results"); font.weight: Theme.weightStrong }
     }
     V.Label {

@@ -40,7 +40,7 @@ V.Page {
 
     tab: "consoles"
     initialFocus: check.running ? cancelButton : nextButton
-    artwork { imageX: 0.53; imageY: 0.05; atX: 0.865; atY: 0.065; zoom: 0.74; fadeLeft: 0.78; fadeBottom: 0.42 }
+    artwork.preset: "palms"
     onBack: {
         check.stop();
         stack.pop();

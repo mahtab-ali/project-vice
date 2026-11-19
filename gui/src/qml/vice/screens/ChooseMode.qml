@@ -20,7 +20,7 @@ V.Page {
 
     tab: "consoles"
     initialFocus: startButton
-    artwork { imageX: 1; imageY: 0.3; atX: 1; atY: 0.3; zoom: 2.2; fadeStart: 0.2; fadeLeft: 0.62; dim: 0.45 }
+    artwork.preset: "palms"
     onBack: stack.pop()
 
     function start() {
@@ -43,8 +43,9 @@ V.Page {
         function onFailedChanged() { if (Vice.failed) page.starting = false }
     }
 
-    // A mode card: the picture on top with nothing printed over it, the
-    // words below on a plain panel. The whole card is masked to its rounded shape.
+    // A mode card: the picture fills the whole card, edge to edge, and a
+    // gradient darkens the lower half so the words read cleanly over it. The
+    // card is masked to its rounded shape.
     component ModeCard: Item {
         id: card
         property string modeId
@@ -83,14 +84,21 @@ V.Page {
 
             V.Artwork {
                 id: cardArt
-                // Without the mask, the picture is inset so the card's corners stay round
-                x: Theme.richEffects ? 0 : Theme.px(10)
-                y: x
-                width: parent.width - x * 2
-                height: Theme.px(164) - y
+                // Without the mask, the picture is inset a little so the card's corners stay round
+                anchors.fill: parent
+                anchors.margins: Theme.richEffects ? 0 : Theme.px(8)
                 fadeLeft: 0
-                opacity: card.selected ? 1 : 0.7
+                opacity: card.selected ? 1 : 0.78
                 Behavior on opacity { NumberAnimation { duration: Theme.dur(Theme.fast) } }
+            }
+            Rectangle {
+                anchors.fill: parent
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Theme.alpha(Theme.surfaceSolid, 0) }
+                    GradientStop { position: 0.3; color: Theme.alpha(Theme.surfaceSolid, 0.05) }
+                    GradientStop { position: 0.58; color: Theme.alpha(Theme.surfaceSolid, 0.88) }
+                    GradientStop { position: 1; color: Theme.alpha(Theme.surfaceSolid, 0.98) }
+                }
             }
         }
         Rectangle {
@@ -168,7 +176,7 @@ V.Page {
             summary: qsTr("Fast response")
             iconName: "gamepad"
             points: [qsTr("Fastest processing"), qsTr("Least added delay"), qsTr("Lightest on the GPU")]
-            art { imageX: 0.53; imageY: 0.13; atX: 0.5; atY: 0.42; zoom: 3.1 }
+            art { imageX: 0.53; imageY: 0.13; atX: 0.5; atY: 0.26; zoom: 1.75 }
         }
         ModeCard {
             modeId: "quality"
@@ -176,7 +184,7 @@ V.Page {
             summary: qsTr("Sharper picture")
             iconName: "image"
             points: [qsTr("Sharper scaling"), qsTr("Cleaner gradients"), qsTr("More GPU time per frame")]
-            art { imageX: 0.17; imageY: 0.3; atX: 0.42; atY: 0.5; zoom: 4.6 }
+            art { imageX: 0.17; imageY: 0.3; atX: 0.42; atY: 0.28; zoom: 2.5 }
         }
     }
 

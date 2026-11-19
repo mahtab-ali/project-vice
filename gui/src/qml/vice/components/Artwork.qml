@@ -7,18 +7,29 @@ import ".."
 Item {
     id: art
 
+    // "scene": the whole picture, people on the right, for pages whose content
+    //          sits in a column on the left.
+    // "palms": the palms and skyline filling the page under an even wash, for
+    //          pages whose content spans the width. The picture always stays
+    //          visible; the wash only quiets it enough to read over.
+    property string preset: "scene"
+    readonly property bool palms: preset === "palms"
+
     // Point of the image (0..1) that lands on a point of this item (0..1)
-    property real imageX: 0.53
+    property real imageX: palms ? 0 : 0.53
     property real imageY: 0.30
-    property real atX: 0.73
-    property real atY: 0.37
+    property real atX: palms ? 0 : 0.73
+    property real atY: palms ? 0.30 : 0.37
     // 1 = image height matches this item's height
-    property real zoom: 1.08
+    property real zoom: palms ? 2.5 : 1.08
     // Where the fade from navy ends, as a fraction of this item; 0 = no fade
-    property real fadeLeft: 0.62
+    property real fadeLeft: palms ? 0 : 0.62
+    // A navy wash over the whole picture, running from the left edge to the right
+    property real washLeft: palms ? 0.86 : 0
+    property real washRight: palms ? 0.5 : 0
     // Everything left of this fraction is plain navy; the fade starts here
     property real fadeStart: 0
-    property real fadeBottom: 0
+    property real fadeBottom: palms ? 0.4 : 0
     property real fadeTop: 0
     // Extra navy wash over the whole crop, for dense pages
     property real dim: 0
@@ -44,6 +55,16 @@ Item {
         anchors.fill: parent
         visible: art.available && art.dim > 0
         color: Theme.alpha(art.fadeColor, art.dim)
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        visible: art.available && (art.washLeft > 0 || art.washRight > 0)
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: Theme.alpha(art.fadeColor, art.washLeft) }
+            GradientStop { position: 1; color: Theme.alpha(art.fadeColor, art.washRight) }
+        }
     }
 
     Rectangle {
@@ -74,8 +95,7 @@ Item {
         height: parent.height * art.fadeBottom
         gradient: Gradient {
             GradientStop { position: 0; color: Theme.alpha(art.fadeColor, 0) }
-            GradientStop { position: 0.8; color: art.fadeColor }
-            GradientStop { position: 1; color: art.fadeColor }
+            GradientStop { position: 1; color: Theme.alpha(art.fadeColor, art.palms ? 0.85 : 1) }
         }
     }
 

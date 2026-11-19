@@ -43,7 +43,7 @@ QtObject {
     readonly property color error: "#F2707C"
     readonly property color info: "#B8B2F7"
     readonly property color online: "#7BE783"
-    readonly property color scrim: alpha("#0B0A1C", 0.72)
+    readonly property color scrim: alpha("#0B0A1C", 0.58)
     readonly property real disabledOpacity: 0.45
 
     function severityColor(severity) {

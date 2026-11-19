@@ -64,7 +64,9 @@ if(CHIAKI_ENABLE_VICE_UI)
 	list(APPEND SOURCE_FILES
 		src/qml/vice.qrc
 		include/vice/netcheck.h
-		src/vice/netcheck.cpp)
+		src/vice/netcheck.cpp
+		include/vice/brand.h
+		src/vice/brand.cpp)
 	add_definitions(-DCHIAKI_VICE_UI)
 	# Background artwork has its own terms, apart from the source code (see src/qml/vice/artwork/SOURCE.md)
 	set(VICE_ARTWORK "${CMAKE_CURRENT_SOURCE_DIR}/src/qml/vice/artwork/key-art.jpg")
@@ -87,6 +89,22 @@ elseif(WIN32)
 		${CMAKE_CURRENT_SOURCE_DIR}/chiaking.rc
 		@ONLY)
 	list(APPEND RESOURCE_FILES "chiaking.rc")
+endif()
+
+# vice hook: the Project Vice icon in place of upstream's (design/icons/03-sunset-wordmark.png)
+if(CHIAKI_ENABLE_VICE_UI)
+	if(APPLE)
+		set(RESOURCE_FILES "vice.icns")
+	elseif(WIN32)
+		file(READ "${CMAKE_CURRENT_SOURCE_DIR}/chiaking.rc" VICE_RC)
+		string(REPLACE "chiaking.ico" "vice.ico" VICE_RC "${VICE_RC}")
+		# The product's name in the file properties; the copyright line is left as it is
+		string(REPLACE "\"next-generation of Chiaki\"" "\"Project Vice\"" VICE_RC "${VICE_RC}")
+		string(REPLACE "\"InternalName\", \"chiaki-ng\"" "\"InternalName\", \"Project Vice\"" VICE_RC "${VICE_RC}")
+		string(REPLACE "\"ProductName\", \"chiaki-ng\"" "\"ProductName\", \"Project Vice\"" VICE_RC "${VICE_RC}")
+		string(REPLACE "\"chiaki.exe\"" "\"ProjectVice.exe\"" VICE_RC "${VICE_RC}")
+		file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/chiaking.rc" "${VICE_RC}")
+	endif()
 endif()
 
 if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
@@ -178,12 +196,33 @@ set_target_properties(chiaki PROPERTIES
 # vice hook: name shown in the macOS menu bar, and the network check's Qt module
 if(CHIAKI_ENABLE_VICE_UI)
 	target_link_libraries(chiaki Qt::Network)
-	set_target_properties(chiaki PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Project Vice")
+	set_target_properties(chiaki PROPERTIES
+		MACOSX_BUNDLE_BUNDLE_NAME "Project Vice"
+		MACOSX_BUNDLE_GUI_IDENTIFIER "app.projectvice.ProjectVice"
+		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/MacOSXBundleInfo.vice.plist.in"
+		MACOSX_BUNDLE_ICON_FILE vice.icns)
+	# The program and app bundle carry the product's name. The CMake target stays "chiaki".
+	if(APPLE)
+		set_target_properties(chiaki PROPERTIES OUTPUT_NAME "Project Vice")
+	elseif(WIN32)
+		set_target_properties(chiaki PROPERTIES OUTPUT_NAME "ProjectVice")
+	else()
+		set_target_properties(chiaki PROPERTIES OUTPUT_NAME "project-vice")
+	endif()
 endif()
 
 install(TARGETS chiaki
 		RUNTIME DESTINATION bin
 		BUNDLE DESTINATION bin)
+if(NOT CHIAKI_ENABLE_VICE_UI) # vice hook: the product installs its own desktop entry and icon instead
 install(FILES chiaking.desktop DESTINATION share/applications)
 install(FILES chiaking.png DESTINATION share/icons/hicolor/512x512/apps)
+endif()
+if(CHIAKI_ENABLE_VICE_UI)
+	# vice hook
+	install(FILES vice.png DESTINATION share/icons/hicolor/512x512/apps RENAME project-vice.png)
+	install(FILES project-vice.desktop DESTINATION share/applications)
+endif()
+if(NOT CHIAKI_ENABLE_VICE_UI) # vice hook
 install(FILES io.github.streetpea.Chiaki4deck.appdata.xml DESTINATION share/metainfo)
+endif()

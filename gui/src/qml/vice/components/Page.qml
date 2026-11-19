@@ -123,9 +123,7 @@ FocusScope {
             width: accountRow.implicitWidth + Theme.unit * 4
             height: Theme.px(36)
             radius: height / 2
-            color: accountTap.pressed ? Theme.alpha(Theme.text, 0.2) : Theme.alpha(Theme.bgDeep, 0.55)
-            border.width: signedIn ? 0 : Theme.border
-            border.color: Theme.alpha(Theme.text, 0.6)
+            color: accountTap.pressed ? Theme.alpha(Theme.text, 0.26) : signedIn ? Theme.alpha(Theme.bgDeep, 0.55) : Theme.alpha(Theme.text, 0.13)
             Accessible.role: Accessible.Button
             Accessible.name: signedIn ? qsTr("PSN connected. Account options") : qsTr("Sign in to PSN")
 

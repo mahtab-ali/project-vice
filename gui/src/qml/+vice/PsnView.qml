@@ -17,7 +17,7 @@ Rectangle {
     color: Theme.bg   // vice
 
     // vice: the same wallpaper backdrop as the other waiting screens
-    V.Artwork { anchors.fill: parent; dim: 0.6; fadeLeft: 0.7 }
+    V.Artwork { anchors.fill: parent; preset: "palms" }
 
     StackView.onActivated: infoLabel.visible = false
 

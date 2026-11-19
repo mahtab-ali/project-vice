@@ -22,6 +22,10 @@ QtObject {
     property int visibility: 2
     function showFullScreen() { visibility = 5 }
     function showNormal() { visibility = 2 }
+    function showMaximized() { visibility = 4 }
+    function showMinimized() { console.log("window.showMinimized") }
+    function startSystemMove() { console.log("window.startSystemMove") }
+    function startSystemResize(edges) { console.log("window.startSystemResize", edges) }
     property int grabs: 0
 
     function grabInput() { grabs++ }

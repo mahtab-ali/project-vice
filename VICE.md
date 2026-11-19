@@ -1,8 +1,8 @@
 # Project Vice
 
-Project Vice is a fork of [chiaki-ng](https://github.com/streetpea/chiaki-ng) with its own UI and, later, latency, network and upscaling work. The licence is unchanged: AGPL-3.0-only with the OpenSSL exception.
+Developer notes for Project Vice: what is built, how it is laid out, how to build and preview it, and how it stays mergeable with the upstream project it is built on. The licence is AGPL-3.0-only with the OpenSSL exception.
 
-This file covers what the fork adds and how to work on it. Everything else is in upstream's `README.md` and `docs/`.
+"Upstream" below means that project (credited in `README.md`). Its name survives in code identifiers, file names and copyright notices, and nowhere the app shows.
 
 ## What is implemented
 
@@ -31,7 +31,9 @@ Screenshots of every screen, rendered from the preview, are in [`screenshots/`](
 
 ## Window, full screen and handhelds
 
-- **Title bar.** On Windows and macOS with Qt 6.9 or newer the app draws under the window's title bar, so the system's own buttons sit on the page's gradient. It is a setting (Settings, Advanced) and does nothing on Linux, where the window manager draws the frame.
+- **Name.** The app, its window, its program file and bundle, its settings location, its desktop entry and its icon all say Project Vice (`gui/include/vice/brand.h`, the `vice hook` blocks in `gui/CMakeLists.txt`). Texts that upstream's own pages show are renamed at run time by a translator, so those files need no edits. Not renamed: code identifiers, the CMake target, the log category, upstream's `docs/` site and packaging scripts, and the Steam shortcut artwork.
+- **Icon.** `gui/vice.icns`, `vice.ico` and `vice.png`, made from `design/icons/03-sunset-wordmark.png`.
+- **Title bar.** The system title bar is turned off and the app draws close, minimise and maximise itself (`components/TitleBar.qml`), on the same picture and gradient as the page: dots on the left on macOS, flat buttons on the right on Windows and Linux. The strip drags the window; on Windows and Linux the edges resize it. "Blend the title bar into the app" in Settings, Advanced brings the system bar back. Checked on macOS only; edge resizing on macOS and all of it on Windows and Linux are untested.
 - **Full screen without a frame.** F11, or the toggle in Settings, Advanced.
 - **Clean view.** A quick-menu toggle that removes the readout, hints and notices from over the picture.
 - **Steam Deck and other handhelds.** Detected from the built-in controls. Focus is always shown, text fields ask for the on-screen keyboard, the artwork is decoded smaller and the looks-only mask on the mode cards is skipped. The layout is checked at 1280×800 in the preview (`SIZE=1280x800 ./shots.sh deck deck-mode`); it has not been run on a Deck.
@@ -58,7 +60,7 @@ gui/src/qml/vice/
     components/      buttons, form controls, dialog, toast, empty and progress states, page shell
     screens/         Home, Pair, ConnectionCheck, ChooseMode, Settings, Profiles, Sessions, Benchmark
     overlay/         QuickMenu, LatencyOverlay
-    artwork/         background artwork, under its own terms (see SOURCE.md)
+    artwork/         background artwork, under its own terms (see SOURCE.md); every page shows it under a gradient
     fonts/           Rubik and Bungee (SIL OFL)
 gui/src/qml/+vice/   replacements for upstream files of the same name
 gui/src/qml/controls/+vice/
@@ -105,7 +107,7 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DOPENSSL_ROOT_DIR="$B/opt/openssl@3" \
   -DCMAKE_PREFIX_PATH="$B/opt/openssl@3;$B/opt/qt;$B/opt/protobuf"
 CPATH="$B/opt/ffmpeg/include" cmake --build build --target chiaki
-open build/gui/chiaki.app
+open "build/gui/Project Vice.app"
 ```
 
 If linking fails with `framework 'AGL' not found` (Qt 6.9.0 on a recent macOS SDK), add `"-DWrapOpenGL_AGL=-framework OpenGL"` to the configure line. Without MoltenVK the app falls back from Vulkan to OpenGL.

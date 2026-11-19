@@ -6,7 +6,8 @@ import ".."
 T.Button {
     id: control
 
-    // primary: pink pill. outline: white outline. danger: outline, coral label. text: label only.
+    // primary: pink pill. outline: a quiet translucent pill (no outline, despite the name).
+    // danger: the same with a coral label. text: label only.
     property string kind: "primary"
     // lg | md | sm
     property string size: "md"
@@ -74,16 +75,11 @@ T.Button {
     background: Rectangle {
         radius: height / 2
         color: control.kind === "primary" ? (control.down ? Theme.pinkPressed : Theme.pink)
-             : control.down ? Theme.alpha(Theme.text, 0.12)
-             : control.hovered && control.kind !== "text" ? Theme.alpha(Theme.text, 0.05)
-             : control.kind === "text" ? "transparent" : Theme.alpha(Theme.bgDeep, 0.55)
-        border.width: control.kind === "outline" || control.kind === "danger" ? Math.max(2, Theme.px(2)) : 0
-        border.color: control.kind === "danger" ? Theme.lineStrong : Theme.text
+             : control.kind === "text" ? (control.down ? Theme.alpha(Theme.text, 0.12) : "transparent")
+             : control.down ? Theme.alpha(Theme.text, 0.26)
+             : control.hovered ? Theme.alpha(Theme.text, 0.2) : Theme.alpha(Theme.text, 0.13)
         Behavior on color { ColorAnimation { duration: Theme.dur(Theme.fast) } }
 
-        FocusRing {
-            active: control.visualFocus
-            border.color: control.kind === "primary" ? Theme.text : Theme.pink
-        }
+        FocusRing { active: control.visualFocus }
     }
 }

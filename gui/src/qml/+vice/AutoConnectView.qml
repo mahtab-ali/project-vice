@@ -40,7 +40,7 @@ Rectangle {
         onActivated: view.cancel()
     }
 
-    V.Artwork { anchors.fill: parent; dim: 0.55; fadeLeft: 0.7 }
+    V.Artwork { anchors.fill: parent; preset: "palms" }
 
     V.Panel {
         anchors.centerIn: parent

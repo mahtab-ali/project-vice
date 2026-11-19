@@ -15,7 +15,7 @@ V.Page {
     tab: "settings"
     showStatus: false
     initialFocus: profileBox
-    artwork { imageX: 1; imageY: 0.36; atX: 1; atY: 0.44; zoom: 1.6; fadeStart: 0.6; fadeLeft: 0.88 }
+    artwork.preset: "palms"
     hints: [{ button: "cross", text: qsTr("Select") }, { button: "moon", text: qsTr("Back") }]
     onBack: stack.pop()
 

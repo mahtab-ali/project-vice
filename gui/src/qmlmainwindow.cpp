@@ -48,6 +48,7 @@ extern "C" {
 #include <QQmlFileSelector> // vice hook
 #ifdef CHIAKI_VICE_UI
 #include "vice/netcheck.h" // vice hook
+#include "vice/brand.h" // vice hook
 #endif
 #include <QQuickRenderTarget>
 #include <QQuickRenderControl>
@@ -2884,10 +2885,17 @@ void QmlMainWindow::setSettings(Settings *new_settings)
     settings = new_settings;
     QString profile = settings->GetCurrentProfile();
     qCCritical(chiakiGui) << "Current Profile: " << profile;
+#ifdef CHIAKI_VICE_UI // vice hook
+    if(profile.isEmpty())
+        QGuiApplication::setApplicationDisplayName(VICE_APP_NAME);
+    else
+        QGuiApplication::setApplicationDisplayName(QString(VICE_APP_NAME ": %1").arg(profile));
+#else
     if(profile.isEmpty())
         QGuiApplication::setApplicationDisplayName("chiaki-ng");
     else
         QGuiApplication::setApplicationDisplayName(QString("chiaki-ng:%1").arg(profile));
+#endif
     this->setTitle(QGuiApplication::applicationDisplayName());
 }
 

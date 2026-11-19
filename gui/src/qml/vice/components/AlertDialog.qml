@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 import QtQuick
+import QtQuick.Effects
 import ".."
 
 // The card of a modal dialog. It only shows `request` and reports which way
@@ -39,10 +40,44 @@ FocusScope {
     }
 
     Keys.onEscapePressed: cancel()
+    // The card carries the same picture as the pages, washed for reading and
+    // cut to the card's rounded shape. A handheld gets the plain card.
+    Item {
+        id: backdrop
+        anchors.fill: parent
+        layer.enabled: Theme.richEffects
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: backdropMask
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 1
+        }
+
+        Rectangle { anchors.fill: parent; radius: Theme.richEffects ? 0 : Theme.radiusDialog; color: Theme.surfaceSolid }
+        Artwork {
+            anchors.fill: parent
+            visible: Theme.richEffects
+            preset: "palms"
+            zoom: 3.2
+            imageY: 0.25
+            atY: 0.2
+            washLeft: 0.8
+            washRight: 0.66
+            fadeBottom: 0.7
+            fadeColor: Theme.surfaceSolid
+        }
+    }
+    Rectangle {
+        id: backdropMask
+        anchors.fill: backdrop
+        radius: Theme.radiusDialog
+        visible: false
+        layer.enabled: true
+    }
     Rectangle {
         anchors.fill: parent
         radius: Theme.radiusDialog
-        color: Theme.alpha(Theme.surfaceSolid, 0.97)
+        color: "transparent"
         border.width: Theme.border
         border.color: Theme.line
     }
@@ -54,9 +89,7 @@ FocusScope {
         width: Theme.px(36)
         height: width
         radius: width / 2
-        color: closeTap.pressed ? Theme.alpha(Theme.text, 0.15) : "transparent"
-        border.width: Math.max(2, Theme.px(2))
-        border.color: Theme.alpha(Theme.text, 0.85)
+        color: closeTap.pressed ? Theme.alpha(Theme.text, 0.26) : Theme.alpha(Theme.text, 0.13)
         Accessible.role: Accessible.Button
         Accessible.name: qsTr("Close")
 

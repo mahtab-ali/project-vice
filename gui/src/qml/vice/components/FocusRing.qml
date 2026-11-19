@@ -10,7 +10,8 @@ Rectangle {
     anchors.margins: -Theme.focusWidth * 2
     radius: parent.radius + Theme.focusWidth * 2
     color: "transparent"
-    border.color: Theme.text
+    // A soft pink halo, never a white outline
+    border.color: Theme.alpha(Theme.pink, 0.7)
     border.width: Theme.focusWidth
     opacity: active && (Theme.keyboardNav || Theme.handheld) ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Theme.dur(Theme.fast) } }

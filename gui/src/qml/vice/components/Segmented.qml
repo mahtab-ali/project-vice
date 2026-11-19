@@ -31,9 +31,9 @@ FocusScope {
         id: frame
         anchors.fill: parent
         radius: height / 2
-        color: Theme.alpha(Theme.bgDeep, 0.6)
-        border.width: control.activeFocus ? Math.max(2, Theme.px(2)) : Theme.border
-        border.color: control.activeFocus ? Theme.pink : Theme.alpha(Theme.text, 0.4)
+        color: Theme.alpha(Theme.text, 0.13)
+        border.width: control.activeFocus && (Theme.keyboardNav || Theme.handheld) ? Math.max(2, Theme.px(2)) : 0
+        border.color: Theme.alpha(Theme.pink, 0.7)
         clip: true
 
         Row {

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Project Vice
+Comment=Remote Play client for PC
+Exec=project-vice
+Icon=project-vice
+Categories=Game;Network;RemoteAccess;

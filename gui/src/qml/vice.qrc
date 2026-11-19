@@ -21,6 +21,7 @@
     <file>vice/Vice.qml</file>
     <file>vice/fonts/Rubik.ttf</file>
     <file>vice/fonts/Bungee.ttf</file>
+    <file>vice/images/icon.png</file>
     <file>vice/components/AlertDialog.qml</file>
     <file>vice/components/Artwork.qml</file>
     <file>vice/components/Button.qml</file>
@@ -46,6 +47,7 @@
     <file>vice/components/StatusIcon.qml</file>
     <file>vice/components/Stepper.qml</file>
     <file>vice/components/TextInput.qml</file>
+    <file>vice/components/TitleBar.qml</file>
     <file>vice/components/Toast.qml</file>
     <file>vice/components/Toggle.qml</file>
     <file>vice/components/Wordmark.qml</file>
@@ -61,5 +63,10 @@
     <file>vice/screens/RemotePlay.qml</file>
     <file>vice/screens/Sessions.qml</file>
     <file>vice/screens/Settings.qml</file>
+  </qresource>
+  <!-- Picked by the "vice" file selector in place of upstream's logo files -->
+  <qresource prefix="/icons/+vice">
+    <file alias="chiaking-logo.svg">vice/images/logo.svg</file>
+    <file alias="chiaking-logo-white.svg">vice/images/logo.svg</file>
   </qresource>
 </RCC>

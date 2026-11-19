@@ -12,8 +12,7 @@ V.Page {
     tab: "sessions"
     showStatus: false
     initialFocus: Vice.history.length ? list : emptyState.primaryButton
-    artworkHeight: Theme.px(210)
-    artwork { imageX: 0.53; imageY: 0.12; atX: 0.8; atY: 0.48; zoom: 2.2; fadeLeft: 0.7; fadeBottom: 0.35 }
+    artwork.preset: "palms"
     onBack: root.showTab("consoles")
 
     property int selected: 0
