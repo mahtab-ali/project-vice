@@ -85,12 +85,12 @@ FocusScope {
         property string caption
         default property alias control: rowSlot.data
         width: column.width
-        height: Theme.px(caption ? 54 : 42)
+        height: Theme.px(caption ? 50 : 39)
         Rectangle { width: parent.width; height: Theme.border; color: Theme.alpha(Theme.text, 0.14) }
-        V.Icon { id: rowIcon; y: Theme.px(9); size: Theme.px(24); weight: 1.8 }
-        V.Label { id: rowLabel; x: Theme.px(40); y: Theme.px(9); font.pixelSize: Theme.px(20); font.weight: Theme.weightButton }
-        V.Label { x: Theme.px(40); y: Theme.px(33); visible: parent.caption; text: parent.caption; font.pixelSize: Theme.px(12); color: Theme.textMuted }
-        Row { id: rowSlot; anchors { right: parent.right; top: parent.top; topMargin: Theme.px(4) } height: Theme.px(34); spacing: Theme.unit * 1.5 }
+        V.Icon { id: rowIcon; y: Theme.px(7); size: Theme.px(24); weight: 1.8 }
+        V.Label { id: rowLabel; x: Theme.px(40); y: Theme.px(7); font.pixelSize: Theme.px(20); font.weight: Theme.weightButton }
+        V.Label { x: Theme.px(40); y: Theme.px(31); visible: parent.caption; text: parent.caption; font.pixelSize: Theme.px(12); color: Theme.textMuted }
+        Row { id: rowSlot; anchors { right: parent.right; top: parent.top; topMargin: Theme.px(2) } height: Theme.px(34); spacing: Theme.unit * 1.5 }
     }
 
     Flickable {
