@@ -55,6 +55,28 @@ set(SOURCE_FILES
 	include/systemdinhibit.h
 	src/systemdinhibit.cpp
 	)
+# vice hook: our QML, selected over upstream screens at runtime (see qmlmainwindow.cpp)
+if(CHIAKI_ENABLE_VICE_UI)
+	if(Qt6_VERSION VERSION_LESS "6.6.0")
+		message(FATAL_ERROR "The Vice UI needs Qt 6.6 or newer (found ${Qt6_VERSION}). Use a newer Qt, or configure with -DCHIAKI_ENABLE_VICE_UI=OFF.")
+	endif()
+	find_package(Qt6 REQUIRED COMPONENTS Network)
+	list(APPEND SOURCE_FILES
+		src/qml/vice.qrc
+		include/vice/netcheck.h
+		src/vice/netcheck.cpp)
+	add_definitions(-DCHIAKI_VICE_UI)
+	# Background artwork is a local file that is not in the repository (see src/qml/vice/artwork/SOURCE.md)
+	set(VICE_ARTWORK "${CMAKE_CURRENT_SOURCE_DIR}/src/qml/vice/artwork/key-art.jpg")
+	if(EXISTS "${VICE_ARTWORK}")
+		file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/vice-artwork.qrc"
+			"<RCC><qresource prefix=\"/vice/artwork\"><file alias=\"key-art.jpg\">${VICE_ARTWORK}</file></qresource></RCC>\n")
+		list(APPEND SOURCE_FILES "${CMAKE_CURRENT_BINARY_DIR}/vice-artwork.qrc")
+		message(STATUS "Vice UI: bundling local artwork")
+	else()
+		message(STATUS "Vice UI: no local artwork, screens use the plain background")
+	endif()
+endif()
 set(RESOURCE_FILES "")
 
 if(APPLE)
@@ -152,6 +174,12 @@ set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE_GUI_IDENTIFIER "org.streetpea.chiaking"
 		MACOSX_BUNDLE_ICON_FILE chiaking.icns
 		RESOURCE "${RESOURCE_FILES}")
+
+# vice hook: name shown in the macOS menu bar, and the network check's Qt module
+if(CHIAKI_ENABLE_VICE_UI)
+	target_link_libraries(chiaki Qt::Network)
+	set_target_properties(chiaki PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Project Vice")
+endif()
 
 install(TARGETS chiaki
 		RUNTIME DESTINATION bin

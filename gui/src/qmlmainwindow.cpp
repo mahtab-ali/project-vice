@@ -45,6 +45,10 @@ extern "C" {
 #include <QQuickItem>
 #include <QQmlEngine>
 #include <QQmlComponent>
+#include <QQmlFileSelector> // vice hook
+#ifdef CHIAKI_VICE_UI
+#include "vice/netcheck.h" // vice hook
+#endif
 #include <QQuickRenderTarget>
 #include <QQuickRenderControl>
 #include <QQuickGraphicsDevice>
@@ -5151,6 +5155,11 @@ renderer_backend_ready:
     deferred_swap_thread->start(QThread::HighPriority);
 
     qml_engine = new QQmlEngine(this);
+#ifdef CHIAKI_VICE_UI
+    // vice hook: files in qml/+vice/ replace the upstream screens of the same name
+    (new QQmlFileSelector(qml_engine, qml_engine))->setExtraSelectors({QStringLiteral("vice")});
+    viceRegisterQmlTypes();
+#endif
     qml_engine->addImageProvider(QStringLiteral("svg"), new QmlSvgProvider);
     if (!qml_engine->incubationController())
         qml_engine->setIncubationController(quick_window->incubationController());
