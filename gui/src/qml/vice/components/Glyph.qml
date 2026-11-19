@@ -11,7 +11,9 @@ Item {
     property string button: "cross"
     property real size: Theme.px(26)
 
-    readonly property var letters: ({ "cross": "A", "moon": "B", "box": "X", "pyramid": "Y", "l1": "L1", "r1": "R1", "l3": "L3", "r3": "R3", "options": "≡" })
+    readonly property var letters: Vice.controllerStyle === "ps"
+        ? ({ "cross": "✕", "moon": "○", "box": "□", "pyramid": "△", "l1": "L1", "r1": "R1", "l3": "L3", "r3": "R3", "options": "≡" })
+        : ({ "cross": "A", "moon": "B", "box": "X", "pyramid": "Y", "l1": "L1", "r1": "R1", "l3": "L3", "r3": "R3", "options": "≡" })
     readonly property bool faceButton: ["cross", "moon", "box", "pyramid"].includes(button)
 
     implicitWidth: size

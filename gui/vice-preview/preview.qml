@@ -118,6 +118,8 @@ Window {
         "stream-quick-replay": () => { Vice.replayAvailable = true; Chiaki.startSession("192.168.1.20"); later(() => { Vice.quickMenuRequested(); note("replay") }) },
         "stream-disconnect": () => { Chiaki.startSession("192.168.1.20"); later(() => Chiaki.sessionStopDialogRequested()) },
         "stream-unstable": () => { Chiaki.startSession("192.168.1.20"); later(() => note("unstable")) },
+        "stream-notice": () => { Chiaki.startSession("192.168.1.20"); later(() => note("replay")) },
+        "stream-deck": () => { Chiaki.controllers = [{ dualSense: false, dualSenseEdge: false, handheld: true, steamVirtual: true, playStation: false }]; Chiaki.startSession("192.168.1.20"); later(() => note("unstable")) },
         "waking": () => { Vice.target = { key: "b", name: "Bedroom", type: "PS5" }; Chiaki.wakeupStartInitiated() },
         "dialog-lost": () => lostDialog(),
         "dialog-lost-retrying": () => { Chiaki.connectOutcome = "hang"; lostDialog(); later(() => Vice.resolveDialog("primary")) },

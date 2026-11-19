@@ -21,7 +21,7 @@ Column {
             required property var modelData
             note: modelData
             compact: host.inStream
-            width: host.inStream ? Math.min(implicitWidth, Theme.px(360)) : implicitWidth
+            width: host.inStream ? Math.min(implicitWidth, Theme.px(340)) : implicitWidth
 
             function leave() {
                 const hadFocus = toast.focused;
@@ -42,9 +42,10 @@ Column {
             onDismissed: leave()
 
             Timer {
-                // Routine notices leave on their own; actionable failures stay
-                interval: Theme.toastDuration
-                running: !toast.modelData.sticky && !toast.held
+                // Routine notices leave on their own; actionable failures stay.
+                // Over the game nothing stays: it would sit on the picture.
+                interval: host.inStream ? Theme.toastDurationInStream : Theme.toastDuration
+                running: (host.inStream || !toast.modelData.sticky) && !toast.held
                 onTriggered: Vice.dismissToast(toast.modelData.key)
             }
 

@@ -15,6 +15,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 
 #ifdef CHIAKI_VICE_UI
 #include "vice/brand.h" // vice hook
+#include "vice/platform.h" // vice hook
 #endif
 #include <streamsession.h>
 #include <settings.h>
@@ -242,6 +243,10 @@ int real_main(int argc, char *argv[])
 		active_settings->Sync();
 	}
 
+#ifdef CHIAKI_VICE_UI // vice hook: a second plain launch brings the first window forward instead
+	if(args.length() == 0 && viceHandOverToRunningInstance())
+		return 0;
+#endif
 	if(args.length() == 0)
 		return RunMain(app, use_alt_settings ? &alt_settings : &settings, exit_app_on_stream_exit);
 
@@ -372,6 +377,9 @@ int real_main(int argc, char *argv[])
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit)
 {
 	QmlMainWindow main_window(settings, exit_app_on_stream_exit);
+#ifdef CHIAKI_VICE_UI
+	viceListenForLaterInstances(&main_window); // vice hook
+#endif
 	main_window.show();
 	return app.exec();
 }

@@ -26,6 +26,8 @@ Item {
     property list<Item> restoreFocusItems
     readonly property bool useSeparateMenuWindow: Chiaki.window.runtimeRendererBackend === 1
     readonly property int streamMenuHeight: 200
+    // vice: lets Main.qml tell this page from the others
+    readonly property bool isStreamView: true
     // vice: the quick menu is a panel on the right
     readonly property int quickMenuWidth: Theme.px(470)
     readonly property bool streamStatsVisible: Chiaki.settings.showStreamStats && Chiaki.session && !(menuController.open || menuController.closing) && !sessionLoading && !sessionError && !(Chiaki.settings.audioVideoDisabled & 0x02)
@@ -984,24 +986,48 @@ Item {
         visible: streamStatsVisible && !Vice.cleanView && !useSeparateMenuWindow && !sessionLoading && !sessionError
     }
 
-    // vice: how to reach the quick menu, shown briefly once the picture is up
-    Row {
+    // vice: once the picture is showing, the connecting screen has no business
+    // being up, whatever state it was left in
+    Connections {
+        target: Chiaki.window
+        function onHasVideoChanged() { if (Chiaki.window.hasVideo && !sessionError) sessionLoading = false }
+        function onActiveChanged() { if (Chiaki.window.hasVideo && !sessionError) sessionLoading = false }
+    }
+
+    // vice: how to reach the quick menu, as a short in-game tip once the picture is up
+    V.HelpTip {
         id: quickMenuHint
-        anchors { right: parent.right; bottom: parent.bottom; rightMargin: Theme.px(30); bottomMargin: Theme.px(30) }
-        spacing: Theme.unit * 1.5
+        x: Theme.px(28)
+        y: Theme.px(24) + (streamStatsVisible && !Vice.cleanView ? Theme.px(74) : 0)
         visible: opacity > 0 && !useSeparateMenuWindow && !Vice.cleanView
         opacity: hintTimer.running && !sessionLoading && !sessionError && !menuController.open ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.dur(Theme.normal) } }
+        iconName: "sliders"
+        text: qsTr("Quick menu")
+        keys: Chiaki.controllers.length && Chiaki.settings.streamMenuEnabled ? Chiaki.settings.stringForStreamMenuShortcut().split("+") : ["Ctrl", "O"]
 
-        V.Icon { anchors.verticalCenter: parent.verticalCenter; name: "gamepad"; size: Theme.px(30); weight: 1.8 }
-        V.Label {
-            anchors.verticalCenter: parent.verticalCenter
-            text: qsTr("Quick menu") + "  ·  " + (Chiaki.controllers.length && Chiaki.settings.streamMenuEnabled ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O")
-            font.weight: Theme.weightStrong
-            style: Text.Outline
-            styleColor: Theme.alpha(Theme.bgDeep, 0.6)
-        }
-        Timer { id: hintTimer; interval: 8000; running: !sessionLoading }
+        Timer { id: hintTimer; interval: 9000; running: !sessionLoading }
+    }
+
+    // vice: a tab that opens the quick menu by touch or click. Everything else
+    // on the picture belongs to the game, so this is the one place to tap.
+    Rectangle {
+        id: quickMenuTab
+        readonly property bool viceTouchTarget: true
+        anchors { right: parent.right; rightMargin: Theme.px(20) }
+        y: Theme.px(20) + (root.chromeBlended ? Theme.px(34) : 0)
+        width: Theme.px(52)
+        height: Theme.px(44)
+        radius: Theme.radiusTip
+        color: Theme.tipBg
+        visible: !useSeparateMenuWindow && !Vice.cleanView && !menuController.open && !menuController.closing && !sessionLoading && !sessionError && Vice.dialog === null
+        opacity: tabTap.pressed ? 1 : hintTimer.running ? 0.9 : 0.45
+        Behavior on opacity { NumberAnimation { duration: Theme.dur(Theme.normal) } }
+        Accessible.role: Accessible.Button
+        Accessible.name: qsTr("Quick menu")
+
+        V.Icon { anchors.centerIn: parent; name: "sliders"; size: Theme.px(24); weight: 2 }
+        TapHandler { id: tabTap; onTapped: menuController.toggle() }
     }
 
     // vice: where the OpenGL renderer cannot draw QML over the video, the

@@ -66,7 +66,9 @@ if(CHIAKI_ENABLE_VICE_UI)
 		include/vice/netcheck.h
 		src/vice/netcheck.cpp
 		include/vice/brand.h
-		src/vice/brand.cpp)
+		src/vice/brand.cpp
+		include/vice/platform.h
+		src/vice/platform.cpp)
 	add_definitions(-DCHIAKI_VICE_UI)
 	# Background artwork has its own terms, apart from the source code (see src/qml/vice/artwork/SOURCE.md)
 	set(VICE_ARTWORK "${CMAKE_CURRENT_SOURCE_DIR}/src/qml/vice/artwork/key-art.jpg")

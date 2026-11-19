@@ -108,13 +108,19 @@ V.Page {
         }
         case "input": return [
             { group: qsTr("Controls") },
+            { key: "controllerStyle", label: qsTr("Button labels"), type: "segmented", local: true,
+              options: [qsTr("Automatic"), qsTr("PlayStation"), qsTr("Xbox")], hint: qsTr("The symbols shown in hints"),
+              get: () => ["auto", "ps", "xbox"].indexOf(Vice.controllerStyle), set: (v) => Vice.controllerStyle = ["auto", "ps", "xbox"][v] },
+            { key: "deckLayout", label: qsTr("Steam Deck layout"), type: "segmented", local: true, visible: root.steamLayoutAvailable,
+              options: [qsTr("PlayStation"), qsTr("Gamepad")], hint: qsTr("Applies after Steam restarts"),
+              get: () => ["playstation", "gamepad"].indexOf(Vice.deckLayout), set: (v) => root.applyDeckLayout(["playstation", "gamepad"][v]) },
             { key: "buttonsByPosition", prop: "buttonsByPosition", label: qsTr("Match buttons by position"), type: "toggle", hint: qsTr("For controllers with a different face-button layout"), get: (v) => v, set: (v) => v },
             { key: "keyboardEnabled", prop: "keyboardEnabled", label: qsTr("Keyboard controls"), type: "toggle", get: (v) => v, set: (v) => v, def: true },
             { key: "mouseTouchEnabled", prop: "mouseTouchEnabled", label: qsTr("Mouse as touchpad"), type: "toggle", get: (v) => v, set: (v) => v, def: true },
             { key: "dpadTouchEnabled", prop: "dpadTouchEnabled", label: qsTr("D-pad as touchpad"), type: "toggle", get: (v) => v, set: (v) => v, def: true },
             { key: "rumbleHapticsIntensity", prop: "rumbleHapticsIntensity", label: qsTr("Rumble strength"), type: "choice",
               options: [qsTr("Off"), qsTr("Very weak"), qsTr("Weak"), qsTr("Normal"), qsTr("Strong"), qsTr("Very strong")], get: (v) => v, set: (v) => v },
-            { key: "streamMenuEnabled", prop: "streamMenuEnabled", label: qsTr("Open the quick menu from the controller"), type: "toggle", get: (v) => v, set: (v) => v, def: true },
+            { key: "streamMenuEnabled", prop: "streamMenuEnabled", label: qsTr("Quick menu from the controller"), type: "toggle", get: (v) => v, set: (v) => v, def: true },
             { group: qsTr("More") },
             { key: "mapping", label: qsTr("Button mapping"), type: "action", text: qsTr("Open"), run: () => root.showControllerMappingDialog() },
             { key: "profiles", label: qsTr("Game profiles"), type: "action", text: qsTr("Open"), run: () => root.showProfiles() }

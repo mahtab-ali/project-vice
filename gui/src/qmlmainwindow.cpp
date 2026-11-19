@@ -49,6 +49,7 @@ extern "C" {
 #ifdef CHIAKI_VICE_UI
 #include "vice/netcheck.h" // vice hook
 #include "vice/brand.h" // vice hook
+#include "vice/platform.h" // vice hook
 #endif
 #include <QQuickRenderTarget>
 #include <QQuickRenderControl>
@@ -7726,6 +7727,12 @@ bool QmlMainWindow::event(QEvent *event)
     case QEvent::MouseButtonRelease:
         if (static_cast<QMouseEvent*>(event)->source() != Qt::MouseEventNotSynthesized)
             return true;
+#ifdef CHIAKI_VICE_UI // vice hook: a press on something the app drew over the picture stays with the app
+        if (session && !grab_input && viceRouteToOverlay(quick_window, event)) {
+            QGuiApplication::sendEvent(quick_window, event);
+            break;
+        }
+#endif
         if (session && !grab_input) {
             if (event->type() == QEvent::MouseMove)
                 session->HandleMouseMoveEvent(static_cast<QMouseEvent*>(event), width(), height());
@@ -7766,6 +7773,12 @@ bool QmlMainWindow::event(QEvent *event)
     case QEvent::TouchBegin:
     case QEvent::TouchUpdate:
     case QEvent::TouchEnd:
+#ifdef CHIAKI_VICE_UI // vice hook: as for the mouse above
+        if (session && !grab_input && viceRouteToOverlay(quick_window, event)) {
+            QGuiApplication::sendEvent(quick_window, event);
+            break;
+        }
+#endif
         if (session && !grab_input) {
             session->HandleTouchEvent(static_cast<QTouchEvent*>(event), width(), height());
             return true;

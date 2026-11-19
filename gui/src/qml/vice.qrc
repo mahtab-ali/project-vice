@@ -31,6 +31,7 @@
     <file>vice/components/EmptyState.qml</file>
     <file>vice/components/FocusRing.qml</file>
     <file>vice/components/Glyph.qml</file>
+    <file>vice/components/HelpTip.qml</file>
     <file>vice/components/Icon.qml</file>
     <file>vice/components/InlineAlert.qml</file>
     <file>vice/components/Label.qml</file>

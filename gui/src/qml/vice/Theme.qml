@@ -43,6 +43,9 @@ QtObject {
     readonly property color error: "#F2707C"
     readonly property color info: "#B8B2F7"
     readonly property color online: "#7BE783"
+    // Tips and notices drawn over the game: a plain dark box
+    readonly property color tipBg: alpha("#000000", 0.68)
+    readonly property int radiusTip: px(8)
     readonly property color scrim: alpha("#0B0A1C", 0.58)
     readonly property real disabledOpacity: 0.45
 
@@ -98,6 +101,8 @@ QtObject {
     readonly property int normal: 200
     // Notifications
     readonly property int toastDuration: 6000
+    // Over the game every notice leaves on its own
+    readonly property int toastDurationInStream: 7000
     readonly property int toastsVisible: 3
     readonly property int toastsVisibleInStream: 1
     readonly property int toastsQueued: 8

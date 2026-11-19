@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include "vice/netcheck.h"
+#include "vice/platform.h"
 
 #include <chiaki/discovery.h>
 
@@ -175,4 +176,5 @@ double ViceNetCheck::loss() const
 void viceRegisterQmlTypes()
 {
 	qmlRegisterType<ViceNetCheck>("vice.backend", 1, 0, "NetCheck");
+	qmlRegisterType<ViceSteamSetup>("vice.backend", 1, 0, "SteamSetup");
 }

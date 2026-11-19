@@ -11,6 +11,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 
 import org.streetpea.chiaking
+import vice.backend
 
 // A file in +vice/ stands in for the file of the same name one folder up,
 // and its imports resolve as if it were that file: so "vice", not "../vice".
@@ -40,12 +41,17 @@ Item {
 
     // ---- upstream: root API used by upstream screens ------------------------
 
+    // vice: the label style can be chosen in Settings, Input; "auto" is upstream's rule
     function controllerButton(name) {
         let type = "deck";
-        for (let i = 0; i < Chiaki.controllers.length; ++i) {
-            if (Chiaki.controllers[i].playStation) {
-                type = "ps";
-                break;
+        if (Vice.controllerStyle === "ps") {
+            type = "ps";
+        } else if (Vice.controllerStyle === "auto") {
+            for (let i = 0; i < Chiaki.controllers.length; ++i) {
+                if (Chiaki.controllers[i].playStation) {
+                    type = "ps";
+                    break;
+                }
             }
         }
         return "image://svg/button-%1#%2".arg(type).arg(name);
@@ -167,6 +173,50 @@ Item {
 
     function showStreamView() {
         stack.replace(stack.get(0), streamViewComponent);
+    }
+
+    // vice: a live session always shows the stream. If anything left another
+    // page on screen while the game is still running (seen after switching
+    // away and back on a Steam Deck), this puts the picture back.
+    function ensureStreamShown() {
+        if (!Chiaki.session)
+            return;
+        const base = stack.get(0);
+        if (base && base.isStreamView === true && stack.depth === 1)
+            return;
+        if (stack.depth > 1)
+            stack.pop(null, StackView.Immediate);
+        if (!(stack.get(0) && stack.get(0).isStreamView === true))
+            stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
+    }
+    Connections {
+        target: Chiaki.window
+        ignoreUnknownSignals: true
+        function onActiveChanged() { root.ensureStreamShown() }
+        function onVisibilityChanged() { root.ensureStreamShown() }
+    }
+
+    // ---- Vice: Steam Deck controller layout ----------------------------------
+    SteamSetup { id: steamSetup }
+    readonly property bool steamLayoutAvailable: steamSetup.available
+    readonly property string steamShortcutName: Theme.appName
+
+    // Returns true when Steam's settings were changed
+    function applyDeckLayout(layout) {
+        const problem = steamSetup.applyLayout(steamShortcutName, layout);
+        if (problem) {
+            Vice.notify({ key: "deck-layout", severity: "error", title: qsTr("Controller layout not changed"), body: problem, sticky: true });
+            return false;
+        }
+        Vice.deckLayout = layout;
+        Vice.notify({
+            key: "deck-layout",
+            severity: "success",
+            iconName: "gamepad",
+            title: layout === "playstation" ? qsTr("PlayStation layout chosen") : qsTr("Gamepad layout chosen"),
+            body: qsTr("Restart Steam to start using it.")
+        });
+        return true;
     }
 
     function showPsnView() {
@@ -291,7 +341,8 @@ Item {
     property string currentTab: "consoles"
 
     function showTab(id, properties) {
-        if (!tabComponents[id])
+        // While a session is live the picture stays on screen; pages wait until it ends
+        if (!tabComponents[id] || Chiaki.session)
             return;
         const leave = () => {
             currentTab = id;
@@ -538,6 +589,7 @@ Item {
         repeat: true
         running: Chiaki.session !== null
         onTriggered: {
+            root.ensureStreamShown();
             root.sampleSession();
             if (root.attempt && root.attempt.connected)
                 root.attempt.dropped = Chiaki.window.droppedFrames;
@@ -591,6 +643,15 @@ Item {
         applyChrome();
         Theme.keyboardNav = Chiaki.controllers.length > 0;
         controllerCount = Chiaki.controllers.length;
+        // First run on a Steam Deck: give Steam a layout whose triggers, touchpad
+        // and menu buttons reach the game, unless one is already set
+        if (steamSetup.available && !Vice.deckLayout && Chiaki.controllers.some(c => c.handheld === true)) {
+            const current = steamSetup.currentLayout(steamShortcutName);
+            if (current)
+                Vice.deckLayout = current;
+            else
+                applyDeckLayout("playstation");
+        }
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
         else if (Chiaki.autoConnect)
@@ -799,10 +860,10 @@ Item {
         inStream: Chiaki.session !== null
         // Over the stream the OpenGL renderer cannot draw QML above the video
         visible: !(inStream && (Chiaki.window.runtimeRendererBackend === 1 || Vice.cleanView))
-        // Over the stream: bottom left, out of the way of the quick menu.
-        // On pages: top right, clear of the content column on the left.
-        x: inStream ? Theme.margin - Theme.unit : parent.width - width - Theme.margin + Theme.unit
-        y: inStream ? parent.height - height - Theme.unit * 3 : Theme.headerHeight
+        // Over the game: bottom left, where game notices usually sit, clear of
+        // the quick menu. On pages: top right, clear of the content on the left.
+        x: inStream ? Theme.px(28) : parent.width - width - Theme.margin + Theme.unit
+        y: inStream ? parent.height - height - Theme.px(28) : Theme.headerHeight
         onFocusFallback: root.focusPage()
     }
 
@@ -868,8 +929,9 @@ Item {
                     iconName: "gamepad",
                     title: qsTr("Controller disconnected"),
                     body: qsTr("Reconnect your controller or use the keyboard."),
-                    actionText: qsTr("Controller settings"),
-                    action: () => root.showTab("settings", { category: "input" }),
+                    // Settings can't open over a live game, so there the notice has no action
+                    actionText: Chiaki.session ? "" : qsTr("Controller settings"),
+                    action: Chiaki.session ? null : () => root.showTab("settings", { category: "input" }),
                     sticky: true
                 });
             } else if (count > 0) {

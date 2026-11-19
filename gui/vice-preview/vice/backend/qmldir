@@ -1,2 +1,3 @@
 module vice.backend
 NetCheck 1.0 NetCheck.qml
+SteamSetup 1.0 SteamSetup.qml

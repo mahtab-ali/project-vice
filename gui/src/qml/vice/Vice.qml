@@ -19,6 +19,10 @@ QtObject {
     property bool blendTitleBar: true
     // During play: no readout, no hints, no notices over the picture
     property bool cleanView: false
+    // Button labels in hints: "auto" follows the connected controller, or "ps" / "xbox"
+    property string controllerStyle: "auto"
+    // Steam Deck layout this app last set: "", "playstation" or "gamepad"
+    property string deckLayout: ""
     // Stable key of the console shown as the hero on Home
     property string selectedConsole: ""
     // [{ console, type, started, seconds, bitrate, loss, dropped, resolution, fps }]; null = not recorded
@@ -51,12 +55,16 @@ QtObject {
         property bool reduceMotion: false
         property bool blendTitleBar: true
         property bool cleanView: false
+        property string controllerStyle: "auto"
+        property string deckLayout: ""
     }
 
     Component.onCompleted: {
         reduceMotion = store.reduceMotion;
         blendTitleBar = store.blendTitleBar;
         cleanView = store.cleanView;
+        controllerStyle = store.controllerStyle;
+        deckLayout = store.deckLayout;
         selectedConsole = store.selectedConsole;
         try { history = JSON.parse(store.history); } catch (e) { history = []; }
     }
@@ -64,6 +72,8 @@ QtObject {
     onSelectedConsoleChanged: if (persist) store.selectedConsole = selectedConsole
     onBlendTitleBarChanged: if (persist) store.blendTitleBar = blendTitleBar
     onCleanViewChanged: if (persist) store.cleanView = cleanView
+    onControllerStyleChanged: if (persist) store.controllerStyle = controllerStyle
+    onDeckLayoutChanged: if (persist) store.deckLayout = deckLayout
 
     function recordSession(entry) {
         history = [entry].concat(history).slice(0, historyLimit);
