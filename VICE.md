@@ -55,7 +55,7 @@ Screenshots of every screen, rendered from the preview, are in [`screenshots/`](
 
 - **Readout during play.** Frame rate, received bitrate, ping, packet loss, decode time, draw time, client pipeline (frame fully received to drawn), input send delay, dropped frames, and network pauses per minute.
 - **Stutters and pauses.** A stutter is the picture standing still for three frame times or more. A pause is nothing arriving from the console for that long. When the two counts match, the stutter is the network, not this computer. At 20 pauses a minute the app says so once per session.
-- **Speed switches** (Settings, Advanced, all on by default): low-delay decoding, raised thread priority for the stream's threads, priority marking on stream packets, and on Windows 1 ms timers and Wi-Fi streaming mode for the length of a session. The Windows parts compile and link; they run only during a stream and have not run yet.
+- **Speed switches** (Settings, Advanced, all on by default): low-delay decoding, raised thread priority for the stream's threads, priority marking on stream packets, and on Windows 1 ms timers and Wi-Fi streaming mode for the length of a session. The Windows parts compile and link; they have run in streams on Windows 11, and each reports what it did in the log (`vice.platform`).
 - **Adaptive bitrate.** Ten seconds of packet loss above the warning level steps the stream down for the rest of that play session by reconnecting: on its own in Game mode, after asking in Quality mode. The saved settings come back when the session ends.
 - **Audio buffer.** Sized at connect from the jitter the last connection check measured for that console.
 - **Replay.** Off by default, because it asks the console for a full picture every 15 seconds. When on, the last 30 seconds of the encoded stream are kept in memory and saved as an MP4 without re-encoding.
@@ -72,7 +72,7 @@ Measured on an M2 Pro MacBook over 5 GHz Wi-Fi, 1080p 60 fps: decode about 3 ms,
 ## Not available yet
 
 - **RTX Video upscaling and HDR conversion.** Needs NVIDIA's SDK, Windows and an RTX card. Listed in Settings as unavailable; the built-in scalers stay usable.
-- **Windows streaming.** The app is built and runs on Windows (see Building), but a stream has not been played on it yet, so the Windows session tuning has not run.
+- **RTX Video on Windows.** The Windows build streams and its session tuning runs (see Building); what is missing there is RTX Video upscaling and HDR conversion, above.
 - **Discovery failure.** The backend does not report it, so Home tells apart only searching, nothing found and search turned off.
 - **Stream readout and notifications over the video with the OpenGL renderer.** QML cannot be drawn over the video there. Dialogs and the quick menu use separate windows; the readout falls back to upstream's.
 - **In-game touch targets and the Steam Deck controller layout** are written and have not been run on a Deck.
@@ -164,9 +164,13 @@ A fresh MSYS2 has no `git`, hence the first line. A clone made with Git for Wind
 
 The script installs the packages, builds or fetches the dependencies upstream's recipe does (libplacebo, an FFmpeg build, SDL), builds the app and makes `ProjectVice-Win/`, a folder that runs on its own (`ProjectVice.exe`, about 330 MB with its DLLs and QML). It follows `.github/workflows/build-msys2.yml` step for step; the first run takes a while and downloads about 250 MB of packages. Vulkan comes from the graphics driver, so nothing like MoltenVK is needed. Settings are kept in the registry under `HKEY_CURRENT_USER\Software\Project Vice\Project Vice`, so a Windows install starts unpaired: pair the console with its 8-digit code from Home.
 
-Checked on Windows: the folder runs with only Windows' own directories on `PATH`; discovery finds the console; the connection check, with the Wi-Fi band and signal read from Windows; the frameless window (drag, double-click, edge and corner resize, the drawn buttons, the system bar when blending is off); one window; the saved window position; `./test.sh` and the library unit tests (`cmake --build build --target chiaki-unit`). Not yet checked, because they need a paired console and a stream: the stream itself, and the Windows session tuning (1 ms timers, Wi-Fi streaming mode, packet priority).
+Checked on Windows 11 with an NVIDIA GPU and a PS5 over Wi-Fi: the folder runs with only Windows' own directories on `PATH`; discovery; the connection check with the Wi-Fi band and signal read from Windows; a stream, with Vulkan hardware decoding; the session tuning, which the log reports line by line (`vice.platform`: 1 ms timers, Wi-Fi streaming mode, thread priority, packet priority); the frameless window; dialogs; keyboard navigation; the pointer during play; one window; the saved window position; `./test.sh` and the library unit tests (`cmake --build build --target chiaki-unit`). Not yet tried with a controller in hand: the second step of button mapping and the automatic touchpad assignment.
 
-Nothing builds on GitHub: Actions is turned off for the repository, and release builds will be published separately.
+**Windows installer.** With the app folder built, [Inno Setup](https://jrsoftware.org/isinfo.php) 6 or newer makes an installer from it: `ISCC scripts\project-vice.iss` writes `dist\ProjectVice-Setup-<version>.exe` (about 87 MB). It installs for the current user without administrator rights and adds a Start menu entry and an uninstaller. It is not signed, so Windows SmartScreen asks before running it. Installers are attached to the repository's Releases, not committed.
+
+**Moving from chiaki-ng on Windows.** chiaki-ng keeps its paired consoles and settings in the registry under `HKEY_CURRENT_USER\Software\Chiaki`. Export that key, replace `Software\Chiaki\Chiaki` with `Software\Project Vice\Project Vice` and `Software\Chiaki\pl_render_params` with `Software\Project Vice\pl_render_params` in the exported file, and import it with Project Vice closed. The console then shows Connect, not Pair. chiaki-ng's "Zoom" window type comes across too; set the picture to Fit in the quick menu if the stream starts zoomed in.
+
+Nothing builds on GitHub: Actions is turned off for the repository. Builds are made on a developer's machine and attached to Releases.
 
 ## Preview, screenshots and tests
 

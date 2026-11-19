@@ -4,13 +4,52 @@ Project Vice is a free, open-source Remote Play client for PC. Your console runs
 
 ![Home](screenshots/home.jpg)
 
+## Install
+
+**Windows 10 and 11 (64-bit).** Download `ProjectVice-Setup-<version>.exe` from this repository's [Releases](../../releases) and run it. It installs for your user account, needs no administrator rights, and adds a Start menu entry. Windows may warn that the installer is unsigned: choose "More info", then "Run anyway".
+
+**macOS, Linux and Steam Deck.** Build from source; the steps are in [`VICE.md`](VICE.md).
+
+Already using chiaki-ng? Its paired consoles and settings can be carried over; see "Moving from chiaki-ng" in [`VICE.md`](VICE.md).
+
 ## What it does
 
-- Finds the consoles on your network, pairs with an 8-digit code, wakes a console from rest mode and connects.
-- Checks the link to a console before you play and shows the ping, jitter and packet loss it measured.
-- Game and Quality modes, per-profile settings, and a quick menu during play.
+**Consoles**
+- Finds the PS4 and PS5 consoles on your network, pairs with the 8-digit code, wakes a console from rest mode and connects.
+- Adds a console by address for one on another network, and hides or removes consoles.
 - Play away from home through your PSN account or with port forwarding, with a step-by-step guide in the app.
-- Works with a controller, a keyboard or a mouse.
+
+**Before you play**
+- A connection check: 30 seconds of ping, jitter and packet loss, with the Wi-Fi band and signal your computer reports.
+- Game mode (least delay) or Quality mode (sharper scaling), remembered per game profile.
+- A connecting screen with the tips you will want once the picture is up.
+
+**While you play**
+- A quick menu on one compact panel: mode, upscaler, bitrate, volume, microphone, picture size (fit, zoom, stretch), the stats overlay and its size, save the last 30 seconds, resume, disconnect.
+- A stats overlay in three sizes, from everything (frame rate, bitrate, ping, loss, decode, render, client delay, input delay, dropped frames, network pauses) down to frame rate and ping.
+- Replay: keep the last 30 seconds in memory and save them as an MP4.
+- Adaptive bitrate that steps down when the connection cannot carry the stream.
+- Notices over the game for an unstable connection, a controller that disconnects and a network that keeps pausing.
+- The mouse pointer stays out of the way and comes back when you move the mouse.
+
+**Controllers**
+- Works with a controller, a keyboard or a mouse; every screen can be driven with the D-pad.
+- Names the controller that is connected, and shows PlayStation or Xbox button labels to match.
+- A controller with no touchpad gets one: the View button sends the touchpad click (View with Menu sends Create).
+- Button mapping per controller; stick deadzones and response curve per game profile.
+- DualSense haptics and adaptive triggers over USB; rumble on other controllers.
+- On a Steam Deck: the Steam Input layout is set up for you, and the app can add itself to your Steam library.
+
+**Performance**
+- Hardware video decoding, drawn with Vulkan (OpenGL as a fallback).
+- Low-delay decoding, raised priority for the stream's threads and priority marking on stream packets.
+- On Windows, for the length of a session: 1 ms timers and Wi-Fi streaming mode with background scanning off.
+- A benchmark that plays two measured sessions, tuning off then on, and shows both.
+
+**The rest**
+- Settings for video, network, input, audio and advanced options, with every upstream option still reachable under "All settings".
+- Session history kept on your computer: duration, bitrate, packet loss, dropped frames.
+- A window without a system title bar, full screen with F11, and one window at a time.
 
 More screens are in [`screenshots/`](screenshots/).
 
@@ -19,11 +58,14 @@ More screens are in [`screenshots/`](screenshots/).
 | ![Choose a mode](screenshots/mode.jpg) | ![Settings](screenshots/settings.jpg) |
 | ![Sign in](screenshots/psn.jpg) | ![Play from anywhere](screenshots/remote-play.jpg) |
 
+## Not available yet
+
+- **RTX Video upscaling and HDR conversion.** They need NVIDIA's RTX Video SDK, which is not part of this build; the app lists them as unavailable. HDR from the console itself is available: choose "H265 with HDR" as the codec, with an HDR display and HDR turned on in the system.
+- **Reading a third-party controller's own touchpad or back paddles on Windows.** In PC (XInput) mode the controller does not report them. Use the controller's PlayStation mode if it has one.
+
 ## Status
 
-Early. The interface is complete; RTX upscaling and HDR conversion are not built and say so in the app. It has been built and run on macOS, built on Linux, and built and run on Windows 11 (a stream has not been played on Windows yet). [`VICE.md`](VICE.md) has the details, the build steps and how the code is laid out.
-
-Release builds are not published yet.
+Early. Built and played on macOS, on a Steam Deck and on Windows 11; built on Linux. The Windows build has been played on a PS5 over Wi-Fi with an NVIDIA GPU. Not yet tried with a controller in hand on Windows: the second step of button mapping and the automatic touchpad assignment. [`VICE.md`](VICE.md) has the details, the build steps and how the code is laid out.
 
 ## Use your own console
 

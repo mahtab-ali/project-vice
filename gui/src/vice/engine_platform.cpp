@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 // The parts of the engine that differ per operating system.
 //
-// The Windows branches below compile and link with MinGW. The Wi-Fi query has
-// run on Windows 11 (the connection check shows its band and signal); the
-// session tuning runs only during a stream and has not run yet.
+// The Windows branches below have run on Windows 11: the Wi-Fi query in the
+// connection check, and the session tuning in streams, where each step says
+// in the log (vice.platform) whether it took effect.
 
 #include "vice/engine.h"
 
