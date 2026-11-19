@@ -2,8 +2,8 @@
 // The drop-down upstream's pages use, drawn as a Vice drop-down.
 import QtQuick
 import QtQuick.Templates
-import "../vice"
-import "../vice/components" as V
+import vice
+import vice.components as V
 
 V.Dropdown {
     property bool firstInFocusChain: false

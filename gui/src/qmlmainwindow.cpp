@@ -5177,6 +5177,8 @@ renderer_backend_ready:
 #ifdef CHIAKI_VICE_UI
     // vice hook: files in qml/+vice/ replace the upstream screens of the same name
     (new QQmlFileSelector(qml_engine, qml_engine))->setExtraSelectors({QStringLiteral("vice")});
+    // vice hook: "import vice", "import vice.components" and so on find qrc:/vice/ through this
+    qml_engine->addImportPath(QStringLiteral("qrc:/"));
     viceRegisterQmlTypes();
 #endif
     qml_engine->addImageProvider(QStringLiteral("svg"), new QmlSvgProvider);
@@ -7382,6 +7384,12 @@ void QmlMainWindow::render()
 
     struct pl_frame target_frame = {};
     pl_frame_from_swapchain(&target_frame, &sw_frame);
+#ifdef CHIAKI_VICE_UI
+    // vice hook: the window is never meant to be seen through. Left as it is, the alpha the
+    // renderer writes reaches the desktop compositor, and anything that extends the window
+    // frame over the client area (Windows theming tools do) shows the desktop through the game.
+    target_frame.repr.alpha = PL_ALPHA_NONE;
+#endif
     if (target_frame.num_planes <= 0) {
         qCWarning(chiakiGui) << "Swapchain frame contains no planes, skipping render";
         close_started_frame(false);
@@ -7740,6 +7748,25 @@ bool QmlMainWindow::event(QEvent *event)
     case QEvent::MouseButtonRelease:
         if (static_cast<QMouseEvent*>(event)->source() != Qt::MouseEventNotSynthesized)
             return true;
+#ifdef CHIAKI_VICE_UI
+        // vice hook: with "hide cursor" on, moving the mouse over the picture brings the pointer
+        // back for a moment, so the quick-menu tab and the window buttons can be found and clicked
+        if (event->type() == QEvent::MouseMove && session && !grab_input && settings->GetHideCursor()) {
+            static QTimer *hide_pointer = nullptr;
+            if (!hide_pointer) {
+                hide_pointer = new QTimer(this);
+                hide_pointer->setSingleShot(true);
+                hide_pointer->setInterval(2500);
+                connect(hide_pointer, &QTimer::timeout, this, [this]() {
+                    if (session && has_video && !grab_input && settings->GetHideCursor())
+                        setCursor(Qt::BlankCursor);
+                });
+            }
+            if (cursor().shape() == Qt::BlankCursor)
+                setCursor(Qt::ArrowCursor);
+            hide_pointer->start();
+        }
+#endif
 #ifdef CHIAKI_VICE_UI // vice hook: a press on something the app drew over the picture stays with the app
         if (session && !grab_input && viceRouteToOverlay(quick_window, event)) {
             QGuiApplication::sendEvent(quick_window, event);

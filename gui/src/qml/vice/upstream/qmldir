@@ -1,0 +1,15 @@
+# Upstream's own screens, by a name that resolves the same from any folder (see VICE.md).
+# The vice file selector still swaps in +vice/ replacements for these.
+module vice.upstream
+AutoConnectView 1.0 ../../AutoConnectView.qml
+ConsolePinDialog 1.0 ../../ConsolePinDialog.qml
+ControllerMappingDialog 1.0 ../../ControllerMappingDialog.qml
+DisplaySettingsDialog 1.0 ../../DisplaySettingsDialog.qml
+ManualHostDialog 1.0 ../../ManualHostDialog.qml
+PSNTokenDialog 1.0 ../../PSNTokenDialog.qml
+PlaceboColorMappingDialog 1.0 ../../PlaceboColorMappingDialog.qml
+PlaceboSettingsDialog 1.0 ../../PlaceboSettingsDialog.qml
+PsnView 1.0 ../../PsnView.qml
+SettingsDialog 1.0 ../../SettingsDialog.qml
+SteamShortcutDialog 1.0 ../../SteamShortcutDialog.qml
+StreamView 1.0 ../../StreamView.qml

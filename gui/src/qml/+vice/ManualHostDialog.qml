@@ -4,8 +4,8 @@ import QtQuick
 
 import org.streetpea.chiaking
 
-import "vice"
-import "vice/components" as V
+import vice
+import vice.components as V
 
 V.Page {
     id: page

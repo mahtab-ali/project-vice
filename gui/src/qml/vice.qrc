@@ -22,6 +22,7 @@
     <file>vice/fonts/Rubik.ttf</file>
     <file>vice/fonts/Bungee.ttf</file>
     <file>vice/images/icon.png</file>
+    <file>vice/components/qmldir</file>
     <file>vice/components/AlertDialog.qml</file>
     <file>vice/components/Artwork.qml</file>
     <file>vice/components/Button.qml</file>
@@ -44,6 +45,7 @@
     <file>vice/components/Segmented.qml</file>
     <file>vice/components/Slider.qml</file>
     <file>vice/components/Spinner.qml</file>
+    <file>vice/components/StreamLoading.qml</file>
     <file>vice/components/StatusDot.qml</file>
     <file>vice/components/StatusIcon.qml</file>
     <file>vice/components/Stepper.qml</file>
@@ -52,8 +54,11 @@
     <file>vice/components/Toast.qml</file>
     <file>vice/components/Toggle.qml</file>
     <file>vice/components/Wordmark.qml</file>
+    <file>vice/overlay/qmldir</file>
     <file>vice/overlay/LatencyOverlay.qml</file>
     <file>vice/overlay/QuickMenu.qml</file>
+    <file>vice/screens/qmldir</file>
+    <file>vice/upstream/qmldir</file>
     <file>vice/screens/Benchmark.qml</file>
     <file>vice/screens/ChooseMode.qml</file>
     <file>vice/screens/ConnectionCheck.qml</file>

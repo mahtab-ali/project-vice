@@ -3,7 +3,7 @@
 // against the mock backend in this folder: no console, no app rebuild.
 //
 //   cd gui/vice-preview
-//   QT_FILE_SELECTORS=vice QT_QUICK_CONTROLS_STYLE=Material qml -I . preview.qml -- [scene] [WIDTHxHEIGHT] [shot.png]
+//   QT_FILE_SELECTORS=vice QT_QUICK_CONTROLS_STYLE=Material qml -I . -I ../src/qml preview.qml -- [scene] [WIDTHxHEIGHT] [shot.png]
 //
 // With no scene it opens Home with two consoles. `./shots.sh` renders every
 // scene to shots/. Scenes are listed in `scenes` below. Everything shown
@@ -116,6 +116,9 @@ Window {
         "benchmark-ready": () => { Vice.benchmark = null; ui.showBenchmark() },
         "benchmark-running": () => { Vice.benchmarkRun = { phase: "vice", left: 18 }; Chiaki.startSession("192.168.1.20") },
         "stream": () => { Chiaki.startSession("192.168.1.20") },
+        "stream-loading": () => { Vice.target = { key: "a", name: "Living room", type: "PS5" }; Chiaki.window.loadingTransitionComplete = false; Chiaki.startSession("192.168.1.20", true) },
+        "stream-compact": () => { Vice.readoutSize = "compact"; Chiaki.settings.showStreamStats = true; Chiaki.startSession("192.168.1.20"); later(() => Vice.quickMenuRequested()) },
+        "stream-mini": () => { Vice.readoutSize = "mini"; Chiaki.settings.showStreamStats = true; Chiaki.startSession("192.168.1.20") },
         "stream-quick": () => { Chiaki.startSession("192.168.1.20"); later(() => Vice.quickMenuRequested()) },
         "stream-quick-replay": () => { Chiaki.startSession("192.168.1.20"); later(() => { Vice.quickMenuRequested(); note("replay") }) },
         "stream-disconnect": () => { Chiaki.startSession("192.168.1.20"); later(() => Chiaki.sessionStopDialogRequested()) },
@@ -187,8 +190,8 @@ Window {
     Loader {
         id: loader
         anchors.fill: parent
-        // By type name, as the app's own lookup does, so the "vice" selector
-        // swaps in +vice/Main.qml with the same import rules as in the app
+        // By type name; the "vice" selector swaps in +vice/Main.qml, which imports
+        // by module (vice, vice.upstream) so it resolves as it does in the app
         sourceComponent: App.Main { }
         focus: true
         Connections { target: Chiaki; function onEngineStreaming(on) { Engine.streaming = on } }

@@ -17,7 +17,7 @@ QtObject {
     property var session: null
     property var window: ChiakiWindow { }
 
-    readonly property var controllerFixture: ({ dualSense: true, dualSenseEdge: false, handheld: false, steamVirtual: false, playStation: true })
+    readonly property var controllerFixture: ({ dualSense: true, dualSenseEdge: false, handheld: false, steamVirtual: false, playStation: true, name: "DualSense Wireless Controller" })
     readonly property var sampleHosts: [
         { display: true, discovered: true, manual: false, registered: true, name: "Living room", address: "192.168.1.20", mac: "a", duid: "", ps5: true, state: "ready", app: "" },
         { display: false, discovered: true, manual: false, registered: false, name: "Hidden", address: "192.168.1.9", mac: "z", duid: "", ps5: true, state: "ready" },
@@ -127,10 +127,11 @@ QtObject {
         else if (connectOutcome === "ok")
             startSession(hosts[index].address);
     }
-    function startSession(host) {
+    // "loading" leaves the picture off, which is the connecting state
+    function startSession(host, loading) {
         session = sessionFixture.createObject(chiaki, { host: host });
         engineStreaming(true);
-        window.hasVideo = true;
+        window.hasVideo = !loading;
     }
     function stopSession(sleep) {
         console.log("stopSession", sleep);

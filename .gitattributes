@@ -1,2 +1,4 @@
 /test/*.inl linguist-generated=true
 /lib/*.h linguist-language=C
+# Shell scripts run in bash (MSYS2 on Windows), which rejects CRLF; Git for Windows checks out CRLF by default
+*.sh text eol=lf

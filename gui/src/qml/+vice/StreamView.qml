@@ -6,11 +6,11 @@ import QtQuick.Window
 
 import org.streetpea.chiaking
 
-import "controls" as C
-// vice: this file replaces ../StreamView.qml by type name, so imports resolve from ../
-import "vice"
-import "vice/components" as V
-import "vice/overlay" as Overlay
+// vice: upstream imports "controls" as C here; it is unused and would not resolve from +vice/ on Qt 6.11+
+// vice: Vice folders are imported as modules (see qmlmainwindow.cpp), so they resolve on any Qt version
+import vice
+import vice.components as V
+import vice.overlay as Overlay
 
 // Vice fork of upstream StreamView.qml. Session handling, input grabbing and
 // the two renderer paths (QML drawn over the video with Vulkan, separate
@@ -29,7 +29,7 @@ Item {
     // vice: lets Main.qml tell this page from the others
     readonly property bool isStreamView: true
     // vice: the quick menu is a panel on the right
-    readonly property int quickMenuWidth: Theme.px(470)
+    readonly property int quickMenuWidth: Theme.px(404)
     readonly property bool streamStatsVisible: Chiaki.settings.showStreamStats && Chiaki.session && !(menuController.open || menuController.closing) && !sessionLoading && !sessionError && !(Chiaki.settings.audioVideoDisabled & 0x02)
     property int separateMenuX: 0
     property int separateMenuY: 0
@@ -214,38 +214,12 @@ Item {
                 bottom: parent.bottom
             }
 
-            BusyIndicator {
+            // vice: an anchor for the messages below; the connecting state itself is loadingMark
+            Item {
                 id: spinner
                 anchors.centerIn: parent
                 width: 70
                 height: width
-                visible: sessionLoading
-                running: sessionLoading
-            }
-
-            Label {
-                anchors {
-                    top: spinner.bottom
-                    horizontalCenter: spinner.horizontalCenter
-                    topMargin: 30
-                }
-                text: {
-                    if(Chiaki.settings.dpadTouchEnabled)
-                    {
-                        if(Chiaki.settings.audioVideoDisabled == 0x01)
-                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
-                        else
-                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
-                    }
-                    else
-                    {
-                        if(Chiaki.settings.audioVideoDisabled == 0x01)
-                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O")
-                        else
-                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O")
-                    }
-                }
-                visible: sessionLoading
             }
 
             Label {
@@ -295,6 +269,27 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 20
                 visible: text
+            }
+        }
+
+        // vice: the connecting state, with tips drawn from the shortcuts the app really has
+        V.StreamLoading {
+            anchors.fill: parent
+            visible: sessionLoading && !sessionError
+            title: Vice.target && Vice.target.name ? qsTr("Connecting to %1").arg(Vice.target.name) : qsTr("Connecting")
+            tips: {
+                const menu = Chiaki.controllers.length && Chiaki.settings.streamMenuEnabled ? Chiaki.settings.stringForStreamMenuShortcut().split("+") : ["Ctrl", "O"];
+                const list = [];
+                if (Chiaki.settings.audioVideoDisabled == 0x01)
+                    list.push({ text: qsTr("Audio is turned off in Settings"), keys: [] });
+                list.push({ text: qsTr("Open the quick menu at any time"), keys: menu });
+                if (Chiaki.settings.dpadTouchEnabled)
+                    list.push({ text: qsTr("Use the D-pad as the touchpad"), keys: Chiaki.settings.stringForDpadShortcut().split("+") });
+                if (!Theme.handheld)
+                    list.push({ text: qsTr("Go full screen with no window frame"), keys: ["F11"] });
+                list.push({ text: qsTr("Turn your microphone on or off"), keys: ["Ctrl", "M"] });
+                list.push({ text: qsTr("Zoom the picture to fill the screen"), keys: ["Ctrl", "Z"] });
+                return list;
             }
         }
     }

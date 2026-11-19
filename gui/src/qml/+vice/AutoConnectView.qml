@@ -6,8 +6,8 @@ import QtQuick.Controls
 
 import org.streetpea.chiaking
 
-import "vice"
-import "vice/components" as V
+import vice
+import vice.components as V
 
 Rectangle {
     id: view

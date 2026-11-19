@@ -18,11 +18,26 @@ QtObject {
     // Draw the app under the window's title bar, so the bar blends into the page
     property bool blendTitleBar: true
     // During play: no readout, no hints, no notices over the picture
-    property bool cleanView: false
+    // Clean view is gone: it hid the one on-screen way back to the quick menu. Kept as a
+    // constant so the places that asked about it read as "off".
+    readonly property bool cleanView: false
+    // How much the stream readout shows: "full", "compact" (one line) or "mini" (frame rate and ping)
+    property string readoutSize: "full"
     // Button labels in hints: "auto" follows the connected controller, or "ps" / "xbox"
     property string controllerStyle: "auto"
     // Steam Deck layout this app last set: "", "playstation" or "gamepad"
     property string deckLayout: ""
+    // What the View button sends: "auto" (touchpad click when no connected controller has a
+    // touchpad), "create" (always Create) or "touchpad" (always the touchpad click)
+    property string touchpadAssign: "auto"
+    function viewSendsTouchpad(controllers) {
+        if (touchpadAssign === "touchpad")
+            return true;
+        if (touchpadAssign === "create" || !controllers.length)
+            return false;
+        // PlayStation pads have the real thing; a Steam Deck's trackpads are set up by its Steam layout
+        return !controllers.some(c => c.playStation || c.handheld || c.steamVirtual);
+    }
     // Lower the bitrate when the connection cannot carry it (asks first in Quality mode)
     property bool adaptiveBitrate: true
     // Size the audio buffer from the last connection check
@@ -57,9 +72,10 @@ QtObject {
         property string selectedConsole: ""
         property bool reduceMotion: false
         property bool blendTitleBar: true
-        property bool cleanView: false
+        property string readoutSize: "full"
         property string controllerStyle: "auto"
         property string deckLayout: ""
+        property string touchpadAssign: "auto"
         property bool adaptiveBitrate: true
         property bool autoBuffer: true
         property string sticks: "{}"
@@ -71,9 +87,10 @@ QtObject {
     Component.onCompleted: {
         reduceMotion = store.reduceMotion;
         blendTitleBar = store.blendTitleBar;
-        cleanView = store.cleanView;
+        readoutSize = ["full", "compact", "mini"].includes(store.readoutSize) ? store.readoutSize : "full";
         controllerStyle = store.controllerStyle;
         deckLayout = store.deckLayout;
+        touchpadAssign = ["auto", "create", "touchpad"].includes(store.touchpadAssign) ? store.touchpadAssign : "auto";
         adaptiveBitrate = store.adaptiveBitrate;
         autoBuffer = store.autoBuffer;
         try { sticks = JSON.parse(store.sticks); } catch (e) { sticks = {}; }
@@ -86,9 +103,10 @@ QtObject {
     onReduceMotionChanged: { Theme.reducedMotion = reduceMotion; if (persist) store.reduceMotion = reduceMotion; }
     onSelectedConsoleChanged: if (persist) store.selectedConsole = selectedConsole
     onBlendTitleBarChanged: if (persist) store.blendTitleBar = blendTitleBar
-    onCleanViewChanged: if (persist) store.cleanView = cleanView
+    onReadoutSizeChanged: if (persist) store.readoutSize = readoutSize
     onControllerStyleChanged: if (persist) store.controllerStyle = controllerStyle
     onDeckLayoutChanged: if (persist) store.deckLayout = deckLayout
+    onTouchpadAssignChanged: if (persist) store.touchpadAssign = touchpadAssign
     onAdaptiveBitrateChanged: if (persist) store.adaptiveBitrate = adaptiveBitrate
     onAutoBufferChanged: if (persist) store.autoBuffer = autoBuffer
     onSticksChanged: if (persist) store.sticks = JSON.stringify(sticks)
@@ -186,6 +204,17 @@ QtObject {
         return qsTr("Not found");
     }
     // Game and Quality are two of upstream's renderer presets (ChiakiWindow.VideoPreset)
+    // What to call a controller: its own name without the generic words every one of them ends in
+    // ("Victrix Pro BFG Reloaded Wireless Controller for PC" reads as "Victrix Pro BFG Reloaded")
+    function controllerName(c) {
+        if (!c)
+            return "";
+        let name = (c.name || "").replace(/\s+for\s+(PC|Windows)$/i, "").replace(/\s+(Wireless\s+)?Controller$/i, "").trim();
+        if (/^(controller|gamepad|xinput controller)?$/i.test(name) || name.length < 3)
+            name = c.dualSenseEdge ? "DualSense Edge" : c.dualSense ? "DualSense" : c.playStation ? qsTr("PlayStation controller") : qsTr("Controller");
+        return name.length > 34 ? name.slice(0, 33).trim() + "…" : name;
+    }
+
     function modeOf(preset) { return preset === 0 ? "game" : preset === 2 ? "quality" : "custom" }
     function presetFor(mode) { return mode === "game" ? 0 : 2 }
     function modeText(mode) { return mode === "game" ? qsTr("Game") : mode === "quality" ? qsTr("Quality") : qsTr("Custom") }

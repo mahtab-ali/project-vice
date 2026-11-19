@@ -6,6 +6,7 @@
 #ifndef VICE_ENGINE_H
 #define VICE_ENGINE_H
 
+#include <atomic>
 #include <QObject>
 #include <QString>
 #include <QTimer>
@@ -53,6 +54,9 @@ class ViceEngine : public QObject
 	Q_PROPERTY(double leftDeadzone READ leftDeadzone WRITE setLeftDeadzone NOTIFY sticksChanged)
 	Q_PROPERTY(double rightDeadzone READ rightDeadzone WRITE setRightDeadzone NOTIFY sticksChanged)
 	Q_PROPERTY(int stickCurve READ stickCurve WRITE setStickCurve NOTIFY sticksChanged)
+	// The View (Back, Share) button sends the touchpad click, for controllers with no touchpad.
+	// View and Menu held together still send Create. Set by the UI from what is connected.
+	Q_PROPERTY(bool viewAsTouchpad READ viewAsTouchpad WRITE setViewAsTouchpad NOTIFY sticksChanged)
 
 	// Statistics of the running session, refreshed twice a second
 	Q_PROPERTY(double fps READ fps NOTIFY statsChanged)
@@ -99,6 +103,8 @@ class ViceEngine : public QObject
 		void setRightDeadzone(double v);
 		int stickCurve() const { return stick_curve; }
 		void setStickCurve(int v);
+		bool viewAsTouchpad() const { return view_as_touchpad.load(); }
+		void setViewAsTouchpad(bool on);
 
 		double fps() const { return stat_fps; }
 		double decodeMs() const { return stat_decode; }
@@ -148,6 +154,7 @@ class ViceEngine : public QObject
 		bool low_delay = true, qos = true, thread_priority = true, system_tuning = true, stock = false;
 		double left_deadzone = 0.0, right_deadzone = 0.0;
 		int stick_curve = 0;
+		std::atomic<bool> view_as_touchpad{false};
 		double stat_fps, stat_decode, stat_render, stat_pipeline, stat_rtt, stat_input, stat_replay_seconds = 0;
 		int stat_stutters = 0, stat_stalls = 0;
 		// Off unless asked for: it makes the console send a full picture every 15 seconds
@@ -166,5 +173,8 @@ void vicePlatformSessionEnd();
 bool vicePlatformSystemTuningSupported();
 // band: "2.4", "5", "6" or empty; signal 0..100 or -1. Returns false when not on Wi-Fi or unknown.
 bool vicePlatformWifi(QString *band, int *signal);
+// The product name a USB controller reports about itself, where the system's controller
+// layer hides it (Windows shows every XInput pad as "XInput Controller"). Empty if unknown.
+QString vicePlatformControllerName(quint16 vendor, quint16 product);
 
 #endif // VICE_ENGINE_H

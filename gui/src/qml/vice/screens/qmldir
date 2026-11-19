@@ -1,0 +1,11 @@
+module vice.screens
+Benchmark 1.0 Benchmark.qml
+ChooseMode 1.0 ChooseMode.qml
+ConnectionCheck 1.0 ConnectionCheck.qml
+Home 1.0 Home.qml
+Pair 1.0 Pair.qml
+Profiles 1.0 Profiles.qml
+PsnSignIn 1.0 PsnSignIn.qml
+RemotePlay 1.0 RemotePlay.qml
+Sessions 1.0 Sessions.qml
+Settings 1.0 Settings.qml

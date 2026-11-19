@@ -15,6 +15,7 @@ QtObject {
     property real leftDeadzone: 0
     property real rightDeadzone: 0
     property int stickCurve: 0
+    property bool viewAsTouchpad: false
 
     property bool streaming: false
     readonly property real fps: streaming ? 59.8 : NaN

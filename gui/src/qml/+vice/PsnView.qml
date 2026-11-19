@@ -4,8 +4,8 @@ import QtQuick.Controls.Material
 
 import org.streetpea.chiaking
 // vice: upstream PsnView.qml with a Vice backdrop; everything else is unchanged
-import "vice"
-import "vice/components" as V
+import vice
+import vice.components as V
 
 Rectangle {
     id: view

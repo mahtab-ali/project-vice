@@ -227,7 +227,7 @@ if(CHIAKI_ENABLE_VICE_UI)
 			message(WARNING "MoltenVK not found: on macOS the app will fall back to OpenGL, which is slower and less even. brew install molten-vk")
 		endif()
 	elseif(WIN32)
-		target_link_libraries(chiaki winmm wlanapi avrt qwave ws2_32)
+		target_link_libraries(chiaki winmm wlanapi avrt qwave ws2_32 setupapi)
 	endif()
 	set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE_BUNDLE_NAME "Project Vice"

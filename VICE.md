@@ -19,7 +19,7 @@ Every screen below is real QML bound to the existing backend (`Chiaki`, its sett
 | Connection check | Real measurements: ping, jitter, packet loss and a 30-second chart, from round trips of the console's discovery request, plus the Wi-Fi band and signal the operating system reports (a 2.4 GHz link is called out). It probes twice a second, which is too slow to see the short Wi-Fi pauses described under "What the engine measures"; the stream itself counts those. |
 | Choose mode | Game and Quality are upstream's Fast and High Quality renderer presets. A custom preset is kept unless a mode is picked. The profile selector uses upstream's settings profiles. When the console reports the game it is running, "Always for this game" ties that game to the profile, and the profile is switched to on the way in. |
 | Stream | Upstream's stream view, patched: quick menu on the right, stream readout, disconnect question. Both renderer paths are kept (QML over the video with Vulkan, separate windows with OpenGL). |
-| Quick menu | Mode, picture settings, bitrate (kept pending, applied by a confirmed reconnect), volume, microphone, picture size, overlay toggle, save the last 30 seconds, resume, disconnect. |
+| Quick menu | One line per setting, controls in one column: mode, upscaler, bitrate (kept pending, applied by a confirmed reconnect), volume, microphone, picture size, stats overlay and its size (full, small, mini). Save the last 30 seconds, resume and disconnect stay at the bottom; only the settings scroll. |
 | Settings | Video, Network, Input, Audio, Advanced. Edits are a draft until Save, with a prompt on leaving unsaved. "All settings" under Advanced opens upstream's full settings. |
 | Game profiles | Select, create and delete upstream settings profiles; mode per profile; stick deadzones and response curve per profile, applied to what is sent to the console; button mapping. |
 | Sessions | History recorded on this computer: duration, average packet loss, dropped frames. Missing values show as a dash. |
@@ -34,12 +34,19 @@ Screenshots of every screen, rendered from the preview, are in [`screenshots/`](
 
 - **Name.** The app, its window, its program file and bundle, its settings location, its desktop entry and its icon all say Project Vice (`gui/include/vice/brand.h`, the `vice hook` blocks in `gui/CMakeLists.txt`). Texts that upstream's own pages show are renamed at run time by a translator, so those files need no edits. Not renamed: code identifiers, the CMake target, the log category, upstream's `docs/` site and packaging scripts, and the Steam shortcut artwork.
 - **Icon.** `gui/vice.icns`, `vice.ico` and `vice.png`, made from `design/icons/03-sunset-wordmark.png`.
-- **Title bar.** The system title bar is turned off and the app draws close, minimise and maximise itself (`components/TitleBar.qml`), on the same picture and gradient as the page: dots on the left on macOS, flat buttons on the right on Windows and Linux. The strip drags the window; on Windows and Linux the edges resize it. "Blend the title bar into the app" in Settings, Advanced brings the system bar back. Checked on macOS only; edge resizing on macOS and all of it on Windows and Linux are untested.
+- **Title bar.** The system title bar is turned off and the app draws close, minimise and maximise itself (`components/TitleBar.qml`), on the same picture and gradient as the page: dots on the left on macOS, flat buttons on the right on Windows and Linux. The strip drags the window; on Windows and Linux the edges resize it. "Blend the title bar into the app" in Settings, Advanced brings the system bar back. Checked on macOS and on Windows 11 (drag, double-click, edges and corners, the three buttons, the system bar when blending is off); edge resizing on macOS and all of it on Linux are untested.
 - **Full screen without a frame.** F11, or the toggle in Settings, Advanced.
 - **Touch during play.** Every touch and click during a stream goes to the game, except on items that declare `viceTouchTarget` (`gui/src/vice/platform.cpp`): in-game notices, which a tap dismisses or acts on, and the quick-menu tab at the top right. Notices over the game are small dark boxes at the bottom left and always leave on their own.
 - **One window.** A second plain launch brings the first window forward and exits.
 - **Controller.** Settings, Input has the button-label style (automatic, PlayStation, Xbox) and, on a Steam Deck, the Steam Input layout Steam uses for the app: the community PlayStation layout or Steam's gamepad template. The app sets the PlayStation layout itself on first run on a Deck if Steam has none for it; Steam applies a change after it restarts. It assumes the Steam shortcut is named "Project Vice".
-- **Clean view.** A quick-menu toggle that removes the readout, hints and notices from over the picture.
+- **Stream readout sizes.** Full, small (one line: frame rate, bitrate, ping, loss, client delay, pauses) or mini (frame rate and ping), chosen in the quick menu. There is no "clean view": it hid the only on-screen way back to the quick menu.
+- **Connecting screen.** The app icon breathing inside a turning ring, the console's name, and one tip at a time drawn from the shortcuts the app really has (`components/StreamLoading.qml`).
+- **Pointer during play.** With "hide cursor" on, moving the mouse shows the pointer for 2.5 seconds so the quick-menu tab and window buttons can be reached. Checked on Windows.
+- **The window is opaque.** The render target is declared as having no alpha, and the Windows build of libplacebo asks for an opaque swapchain first (`scripts/build-libplacebo-windows.sh`). Without both, tools that extend the window frame over the client area (Windhawk's "Translucent Windows", for one) showed the desktop through the game.
+- **Pop-ups under a render control.** From Qt 6.11 the overlay that pop-ups live in is left at 0 x 0 when the app draws through `QQuickRenderControl`; `+vice/Main.qml` sizes it to the window. Without that, every Vice dialog opened off screen with no height.
+- **Keys and D-pad.** Up from a page's first control goes to the header (tabs and account), Left and Right move along it, Down returns. The focus ring is switched off only by a pointer that really moved.
+- **Controller name.** The footer names the controller. Windows reports every XInput pad as "XInput Controller"; the app reads the product name from the USB device (`vicePlatformControllerName`).
+- **Button mapping.** Two steps: press a button on the controller to pick it, then upstream's mapping page. A controller with no touchpad gets one assigned: View (Back) sends the touchpad click and View with Menu sends Create ("View button sends" in Settings, Input: auto, Create, touchpad). PlayStation pads and a Steam Deck are left as they are. The second step and the assignment have not been tried with a controller in hand.
 - **Steam Deck and other handhelds.** Detected from the built-in controls. Focus is always shown, text fields ask for the on-screen keyboard, the artwork is decoded smaller and the looks-only mask on the mode cards is skipped. The layout is checked at 1280×800 in the preview (`SIZE=1280x800 ./shots.sh deck deck-mode`) and the app has been played on a Deck.
 
 ## What the engine measures and changes
@@ -48,7 +55,7 @@ Screenshots of every screen, rendered from the preview, are in [`screenshots/`](
 
 - **Readout during play.** Frame rate, received bitrate, ping, packet loss, decode time, draw time, client pipeline (frame fully received to drawn), input send delay, dropped frames, and network pauses per minute.
 - **Stutters and pauses.** A stutter is the picture standing still for three frame times or more. A pause is nothing arriving from the console for that long. When the two counts match, the stutter is the network, not this computer. At 20 pauses a minute the app says so once per session.
-- **Speed switches** (Settings, Advanced, all on by default): low-delay decoding, raised thread priority for the stream's threads, priority marking on stream packets, and on Windows 1 ms timers and Wi-Fi streaming mode for the length of a session. The Windows parts are written and have never been compiled or run.
+- **Speed switches** (Settings, Advanced, all on by default): low-delay decoding, raised thread priority for the stream's threads, priority marking on stream packets, and on Windows 1 ms timers and Wi-Fi streaming mode for the length of a session. The Windows parts compile and link; they run only during a stream and have not run yet.
 - **Adaptive bitrate.** Ten seconds of packet loss above the warning level steps the stream down for the rest of that play session by reconnecting: on its own in Game mode, after asking in Quality mode. The saved settings come back when the session ends.
 - **Audio buffer.** Sized at connect from the jitter the last connection check measured for that console.
 - **Replay.** Off by default, because it asks the console for a full picture every 15 seconds. When on, the last 30 seconds of the encoded stream are kept in memory and saved as an MP4 without re-encoding.
@@ -65,7 +72,7 @@ Measured on an M2 Pro MacBook over 5 GHz Wi-Fi, 1080p 60 fps: decode about 3 ms,
 ## Not available yet
 
 - **RTX Video upscaling and HDR conversion.** Needs NVIDIA's SDK, Windows and an RTX card. Listed in Settings as unavailable; the built-in scalers stay usable.
-- **Windows.** Not built for this fork yet (see Building). The Windows-only tuning code compiles in a syntax check and has never run.
+- **Windows streaming.** The app is built and runs on Windows (see Building), but a stream has not been played on it yet, so the Windows session tuning has not run.
 - **Discovery failure.** The backend does not report it, so Home tells apart only searching, nothing found and search turned off.
 - **Stream readout and notifications over the video with the OpenGL renderer.** QML cannot be drawn over the video there. Dialogs and the quick menu use separate windows; the readout falls back to upstream's.
 - **In-game touch targets and the Steam Deck controller layout** are written and have not been run on a Deck.
@@ -92,7 +99,9 @@ gui/vice-preview/    the whole UI against a mock backend, screenshots, tests
 
 One CMake option, `CHIAKI_ENABLE_VICE_UI`, on by default. `-DCHIAKI_ENABLE_VICE_UI=OFF` builds stock chiaki-ng. The Vice UI needs Qt 6.6 or newer.
 
-When it is on, a Qt file selector named `vice` is active: a file in a `+vice/` folder is loaded wherever upstream asks for the file of the same name beside that folder. No upstream QML file is edited. Imports inside a `+vice/` file resolve as if it were the file it replaces.
+When it is on, a Qt file selector named `vice` is active: a file in a `+vice/` folder is loaded wherever upstream asks for the file of the same name beside that folder. No upstream QML file is edited.
+
+`+vice/` files import the Vice folders as modules (`import vice`, `import vice.components as V`, `vice.screens`, `vice.overlay`), each with a `qmldir`, found through the `qrc:/` import path the app adds (the preview passes `-I ../src/qml`). Relative imports would not do: up to Qt 6.10 they resolve from the folder of the file being replaced, and from Qt 6.11 they resolve from the `+vice/` folder itself whenever the file is reached by type name. A new file in `vice/components`, `vice/screens` or `vice/overlay` needs a line in that folder's `qmldir`, or it is not visible to other files.
 
 Three replacements are copies of upstream files and need care when merging upstream:
 
@@ -143,14 +152,19 @@ podman run --rm --volume "$(pwd):/build/chiaki:Z" -w /build/chiaki \
 
 Settings live in `~/.config/Project Vice/Project Vice.conf` on Linux. `steamos-add-to-steam <path to the AppImage>` adds it to the Steam library.
 
-**Windows.** Install [MSYS2](https://www.msys2.org), open its "MSYS2 MINGW64" shell, then:
+**Windows** (built and run on Windows 11 with MSYS2's Qt 6.12). Install [MSYS2](https://www.msys2.org), open its "MSYS2 MINGW64" shell, then:
 
 ```
+pacman -S --needed git
 git clone --recursive <this repository> project-vice && cd project-vice
 scripts/build-windows-msys2.sh
 ```
 
-The script installs the packages, builds or fetches the dependencies upstream's recipe does (libplacebo, an FFmpeg build, SDL), builds the app and makes `ProjectVice-Win/`, a folder that runs on its own (`ProjectVice.exe`). It follows `.github/workflows/build-msys2.yml` step for step and has not been run for this fork yet, so the first run may need a fix in the script. The Vice C++ sources, Windows-only parts included, pass a syntax check with the MinGW compiler; they have not been linked or run on Windows. Vulkan comes from the graphics driver there, so nothing like MoltenVK is needed. Settings are kept in the registry under `HKEY_CURRENT_USER\Software\Project Vice`, so a Windows install starts unpaired: pair the console with its 8-digit code from Home.
+A fresh MSYS2 has no `git`, hence the first line. A clone made with Git for Windows works too; `.gitattributes` keeps the shell scripts' line endings as bash needs them. MSYS2's `git` has no stored GitHub sign-in, so clone a private copy of the repository with Git for Windows.
+
+The script installs the packages, builds or fetches the dependencies upstream's recipe does (libplacebo, an FFmpeg build, SDL), builds the app and makes `ProjectVice-Win/`, a folder that runs on its own (`ProjectVice.exe`, about 330 MB with its DLLs and QML). It follows `.github/workflows/build-msys2.yml` step for step; the first run takes a while and downloads about 250 MB of packages. Vulkan comes from the graphics driver, so nothing like MoltenVK is needed. Settings are kept in the registry under `HKEY_CURRENT_USER\Software\Project Vice\Project Vice`, so a Windows install starts unpaired: pair the console with its 8-digit code from Home.
+
+Checked on Windows: the folder runs with only Windows' own directories on `PATH`; discovery finds the console; the connection check, with the Wi-Fi band and signal read from Windows; the frameless window (drag, double-click, edge and corner resize, the drawn buttons, the system bar when blending is off); one window; the saved window position; `./test.sh` and the library unit tests (`cmake --build build --target chiaki-unit`). Not yet checked, because they need a paired console and a stream: the stream itself, and the Windows session tuning (1 ms timers, Wi-Fi streaming mode, packet priority).
 
 Nothing builds on GitHub: Actions is turned off for the repository, and release builds will be published separately.
 
@@ -160,7 +174,7 @@ The preview runs the real UI, including `+vice/Main.qml`, against the mock backe
 
 ```
 cd gui/vice-preview
-QT_FILE_SELECTORS=vice QT_QUICK_CONTROLS_STYLE=Material qml -I . preview.qml -- home
+QT_FILE_SELECTORS=vice QT_QUICK_CONTROLS_STYLE=Material qml -I . -I ../src/qml preview.qml -- home
 ./shots.sh            # every scene to shots/<scene>.png
 ./shots.sh mode pair  # only these
 ./test.sh             # behaviour tests (needs qmltestrunner)

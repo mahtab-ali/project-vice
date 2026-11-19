@@ -8,6 +8,7 @@ FocusScope {
 
     property var model: []
     property int currentIndex: 0
+    property int textSize: Theme.textLabel
     signal activated(int index)
 
     implicitWidth: Theme.px(360)
@@ -59,7 +60,7 @@ FocusScope {
                         anchors.centerIn: parent
                         text: segment.modelData
                         font.weight: Theme.weightStrong
-                        font.pixelSize: Theme.textLabel
+                        font.pixelSize: control.textSize
                         color: segment.current ? Theme.pinkInk : Theme.text
                         Accessible.role: Accessible.PageTab
                         Accessible.name: text

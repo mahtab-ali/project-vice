@@ -42,3 +42,5 @@ site/
 
 # vice: full-size preview renders; the curated set lives in /screenshots
 /gui/vice-preview/shots/
+# vice: the Windows folder scripts/build-windows-msys2.sh makes
+/ProjectVice-Win/

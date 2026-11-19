@@ -1,0 +1,3 @@
+module vice.overlay
+LatencyOverlay 1.0 LatencyOverlay.qml
+QuickMenu 1.0 QuickMenu.qml

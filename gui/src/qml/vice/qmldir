@@ -1,2 +1,3 @@
+module vice
 singleton Theme 1.0 Theme.qml
 singleton Vice 1.0 Vice.qml

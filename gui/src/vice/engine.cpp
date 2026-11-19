@@ -532,6 +532,16 @@ void viceApplyStickTuning(ChiakiControllerState *state)
 	};
 	tune(&state->left_x, &state->left_y, engine->leftDeadzone());
 	tune(&state->right_x, &state->right_y, engine->rightDeadzone());
+
+	// A controller with no touchpad: View stands in for the touchpad click, which nearly
+	// every game uses; View and Menu together are Create, which few need mid-game.
+	if(engine->viewAsTouchpad() && (state->buttons & CHIAKI_CONTROLLER_BUTTON_SHARE))
+	{
+		if(state->buttons & CHIAKI_CONTROLLER_BUTTON_OPTIONS)
+			state->buttons &= ~static_cast<uint32_t>(CHIAKI_CONTROLLER_BUTTON_OPTIONS);
+		else
+			state->buttons = (state->buttons & ~static_cast<uint32_t>(CHIAKI_CONTROLLER_BUTTON_SHARE)) | CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+	}
 }
 
 // ---- the QML object ---------------------------------------------------------------
@@ -658,6 +668,12 @@ void ViceEngine::setRightDeadzone(double v)
 	right_deadzone = v;
 	save("right_deadzone", v);
 	emit sticksChanged();
+}
+
+void ViceEngine::setViewAsTouchpad(bool on)
+{
+	if(view_as_touchpad.exchange(on) != on)
+		emit sticksChanged();
 }
 
 void ViceEngine::setStickCurve(int v)

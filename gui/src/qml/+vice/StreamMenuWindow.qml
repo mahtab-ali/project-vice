@@ -8,8 +8,8 @@ import QtQuick.Window
 
 import org.streetpea.chiaking
 
-import "vice"
-import "vice/overlay" as Overlay
+import vice
+import vice.overlay as Overlay
 
 Window {
     id: streamMenuWindow

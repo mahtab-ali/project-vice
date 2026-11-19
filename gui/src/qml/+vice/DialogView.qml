@@ -5,8 +5,8 @@
 import QtQuick
 import QtQuick.Controls
 
-import "vice"
-import "vice/components" as V
+import vice
+import vice.components as V
 
 Item {
     id: dialog

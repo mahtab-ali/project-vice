@@ -2,7 +2,8 @@
 # Builds Project Vice on Windows. Run it from the "MSYS2 MINGW64" shell (https://www.msys2.org):
 #   git clone --recursive <this repository> && cd project-vice && scripts/build-windows-msys2.sh
 # The steps are upstream's (.github/workflows/build-msys2.yml), in one place.
-# ponytail: written from that recipe and not yet run for this fork; fix it here when it is.
+# Run end to end on Windows 11 with a fresh MSYS2 (Qt 6.12). A fresh MSYS2 has no git:
+# "pacman -S --needed git" first. MSYS2's Python is externally managed, hence the pip fallback.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ "${MSYSTEM:-}" = MINGW64 ] || { echo "Run this from the MSYS2 MINGW64 shell, not ${MSYSTEM:-another shell}." >&2; exit 1; }
@@ -20,7 +21,8 @@ pip install protobuf || pip install --break-system-packages protobuf
 # Dependencies upstream builds or downloads itself; each is skipped once it is in /mingw64
 deps=build-deps
 mkdir -p "$deps"
-if [ ! -f /mingw64/lib/pkgconfig/libplacebo.pc ]; then
+# (rebuilt too when the copy in build-deps predates the opaque-swapchain patch in that script)
+if [ ! -f /mingw64/lib/pkgconfig/libplacebo.pc ] || ! grep -A1 "alphaModes\[\] = {" "$deps/libplacebo/src/vulkan/swapchain.c" 2>/dev/null | grep -q OPAQUE; then
 	LIBPLACEBO_VERSION="${LIBPLACEBO_VERSION:-3be579e6c7f6b421d9ac3ab4860edc437c50b3eb}" scripts/build-libplacebo-windows.sh "$deps"
 fi
 if [ ! -f /mingw64/include/libavformat/avformat.h ]; then

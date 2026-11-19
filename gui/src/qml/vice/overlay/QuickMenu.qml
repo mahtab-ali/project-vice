@@ -80,40 +80,86 @@ FocusScope {
         border.color: Theme.line
     }
 
+    // One setting, one line: icon and label on the left, the control on the right. Every
+    // control sits in the same column (controlWidth), so the rows line up down the panel.
+    readonly property int controlWidth: Theme.px(196)
+    readonly property int controlHeight: Theme.px(28)
+    readonly property int smallText: Theme.px(13)
+
     component MenuRow: Item {
+        id: mrow
         property alias iconName: rowIcon.name
         property alias label: rowLabel.text
-        property string caption
         default property alias control: rowSlot.data
         width: column.width
-        height: Theme.px(caption ? 50 : 39)
-        Rectangle { width: parent.width; height: Theme.border; color: Theme.alpha(Theme.text, 0.14) }
-        V.Icon { id: rowIcon; y: Theme.px(7); size: Theme.px(24); weight: 1.8 }
-        V.Label { id: rowLabel; x: Theme.px(40); y: Theme.px(7); font.pixelSize: Theme.px(20); font.weight: Theme.weightButton }
-        V.Label { x: Theme.px(40); y: Theme.px(31); visible: parent.caption; text: parent.caption; font.pixelSize: Theme.px(12); color: Theme.textMuted }
-        Row { id: rowSlot; anchors { right: parent.right; top: parent.top; topMargin: Theme.px(2) } height: Theme.px(34); spacing: Theme.unit * 1.5 }
+        height: visible ? Theme.px(42) : 0
+        Rectangle { width: parent.width; height: 1; color: Theme.alpha(Theme.text, 0.08) }
+        V.Icon { id: rowIcon; anchors.verticalCenter: parent.verticalCenter; size: Theme.px(18); weight: 1.8; color: Theme.textMuted }
+        V.Label {
+            id: rowLabel
+            x: Theme.px(30)
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width - x - rowSlot.width - Theme.px(10)
+            elide: Text.ElideRight
+            font.pixelSize: Theme.px(14)
+            font.weight: Theme.weightStrong
+        }
+        Row {
+            id: rowSlot
+            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+            height: menu.controlHeight
+            spacing: Theme.px(8)
+        }
+    }
+
+    // Keeps the control the D-pad lands on in view when the menu is taller than the window
+    Connections {
+        target: menu.Window.window
+        function onActiveFocusItemChanged() {
+            const item = menu.Window.window ? menu.Window.window.activeFocusItem : null;
+            if (!item || !menu.visible)
+                return;
+            let inside = false;
+            for (let up = item; up; up = up.parent)
+                if (up === column) { inside = true; break; }
+            if (!inside)
+                return;
+            const top = item.mapToItem(column, 0, 0).y - Theme.px(48);
+            const bottom = item.mapToItem(column, 0, item.height).y + Theme.px(16);
+            if (top < flick.contentY)
+                flick.contentY = Math.max(0, top);
+            else if (bottom > flick.contentY + flick.height)
+                flick.contentY = Math.min(Math.max(0, flick.contentHeight - flick.height), bottom - flick.height);
+        }
     }
 
     Flickable {
         id: flick
-        anchors { fill: parent; margins: Theme.unit * 1.5; leftMargin: Theme.px(38); rightMargin: Theme.px(38); topMargin: Theme.px(24); bottomMargin: Theme.px(16) }
+        anchors { top: parent.top; left: parent.left; right: parent.right; bottom: actions.top; margins: Theme.unit * 1.5; leftMargin: Theme.px(30); rightMargin: Theme.px(30); topMargin: Theme.px(22); bottomMargin: 0 }
         contentHeight: column.implicitHeight
         clip: true
         boundsBehavior: Flickable.StopAtBounds
+        Behavior on contentY { NumberAnimation { duration: Theme.dur(Theme.fast) } }
 
         Column {
             id: column
             width: flick.width
 
-            V.Label { text: qsTr("Quick menu"); font.pixelSize: Theme.px(36); font.weight: Theme.weightDisplay }
+            V.Label { text: qsTr("Quick menu"); font.pixelSize: Theme.px(21); font.weight: Theme.weightDisplay }
             Row {
                 spacing: Theme.unit * 1.5
-                bottomPadding: Theme.px(8)
+                topPadding: Theme.px(3)
+                bottomPadding: Theme.px(12)
+                width: parent.width
                 V.StatusDot { anchors.verticalCenter: parent.verticalCenter; state: menu.session && menu.session.connected ? "on" : "rest" }
                 V.Label {
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: Theme.textHeading
-                    text: (menu.target ? menu.target.name : Chiaki.settings.streamerMode || !menu.session ? qsTr("Console") : menu.session.host)
+                    width: parent.width - Theme.px(24)
+                    elide: Text.ElideRight
+                    font.pixelSize: menu.smallText
+                    color: menu.hasPending ? Theme.pink : Theme.textMuted
+                    text: menu.hasPending ? qsTr("Reconnect to apply %1 Mbps").arg(menu.pendingBitrate)
+                        : (menu.target ? menu.target.name : Chiaki.settings.streamerMode || !menu.session ? qsTr("Console") : menu.session.host)
                           + "  ·  " + (menu.session && menu.session.connected ? qsTr("Connected") : qsTr("Connecting"))
                 }
             }
@@ -121,10 +167,10 @@ FocusScope {
             MenuRow {
                 iconName: "gamepad"
                 label: qsTr("Mode")
-                caption: menu.mode === "custom" ? qsTr("A custom picture preset is in use") : ""
                 V.Segmented {
-                    width: Theme.px(210)
-                    implicitHeight: Theme.px(36)
+                    width: menu.controlWidth
+                    implicitHeight: menu.controlHeight
+                    textSize: menu.smallText
                     model: [qsTr("Game"), qsTr("Quality")]
                     currentIndex: menu.mode === "game" ? 0 : menu.mode === "quality" ? 1 : -1
                     onActivated: (index) => menu.setPreset(Vice.presetFor(index === 0 ? "game" : "quality"))
@@ -137,8 +183,9 @@ FocusScope {
                 V.Button {
                     kind: "text"
                     size: "sm"
-                    implicitHeight: Theme.px(36)
-                    text: qsTr("Built-in") + "   ›"
+                    implicitHeight: menu.controlHeight
+                    font.pixelSize: menu.smallText
+                    text: qsTr("Built-in") + "  ›"
                     // RTX Video is not part of this build; the built-in scalers have their own page
                     onTriggered: Chiaki.window.videoPreset === 5 ? menu.placeboSettingsRequested() : menu.displaySettingsRequested()
                     Accessible.name: qsTr("Upscaler and picture settings")
@@ -147,35 +194,34 @@ FocusScope {
             MenuRow {
                 iconName: "signal"
                 label: qsTr("Bitrate")
-                caption: menu.hasPending ? qsTr("Reconnect to apply. The stream is still at %1 Mbps.").arg(menu.savedBitrate) : qsTr("A change needs a reconnect")
                 V.Slider {
-                    width: Theme.px(150)
-                    implicitHeight: Theme.px(36)
+                    width: menu.controlWidth - Theme.px(62) - Theme.px(8)
+                    implicitHeight: menu.controlHeight
                     from: 2; to: 100; stepSize: 1
                     value: menu.pendingBitrate
                     onMoved: menu.pendingBitrate = Math.round(value)
                     Accessible.name: qsTr("Bitrate")
                 }
-                V.Label { anchors.verticalCenter: parent.verticalCenter; width: Theme.px(76); horizontalAlignment: Text.AlignRight; text: qsTr("%1 Mbps").arg(menu.pendingBitrate) }
+                V.Label { anchors.verticalCenter: parent.verticalCenter; width: Theme.px(62); horizontalAlignment: Text.AlignRight; font.pixelSize: menu.smallText; font.weight: Theme.weightStrong; text: qsTr("%1 Mbps").arg(menu.pendingBitrate) }
             }
             MenuRow {
                 iconName: "volume"
                 label: qsTr("Volume")
                 V.Slider {
-                    width: Theme.px(150)
-                    implicitHeight: Theme.px(36)
+                    width: menu.controlWidth - Theme.px(62) - Theme.px(8)
+                    implicitHeight: menu.controlHeight
                     from: 0; to: 128; stepSize: 1
                     value: Chiaki.settings.audioVolume
                     onMoved: Chiaki.settings.audioVolume = value
                     Accessible.name: qsTr("Volume")
                 }
-                V.Label { anchors.verticalCenter: parent.verticalCenter; width: Theme.px(76); horizontalAlignment: Text.AlignRight; text: Math.round(Chiaki.settings.audioVolume / 128 * 100) + "%" }
+                V.Label { anchors.verticalCenter: parent.verticalCenter; width: Theme.px(62); horizontalAlignment: Text.AlignRight; font.pixelSize: menu.smallText; font.weight: Theme.weightStrong; text: Math.round(Chiaki.settings.audioVolume / 128 * 100) + "%" }
             }
             MenuRow {
                 iconName: "mic"
                 label: qsTr("Microphone")
                 V.Toggle {
-                    implicitHeight: Theme.px(36)
+                    implicitHeight: menu.controlHeight
                     enabled: menu.session && menu.session.connected ? true : false
                     checked: menu.session && !menu.session.muted ? true : false
                     onToggled: menu.session.muted = !menu.session.muted
@@ -188,8 +234,9 @@ FocusScope {
                 V.Segmented {
                     // ChiakiWindow.VideoMode: Normal, Stretch, Zoom
                     readonly property var modes: [0, 2, 1]
-                    width: Theme.px(236)
-                    implicitHeight: Theme.px(36)
+                    width: menu.controlWidth
+                    implicitHeight: menu.controlHeight
+                    textSize: menu.smallText
                     model: [qsTr("Fit"), qsTr("Zoom"), qsTr("Stretch")]
                     currentIndex: modes.indexOf(Chiaki.window.videoMode)
                     onActivated: (index) => Chiaki.window.videoMode = modes[index]
@@ -198,104 +245,138 @@ FocusScope {
             }
             MenuRow {
                 iconName: "pulse"
-                label: qsTr("Latency overlay")
+                label: qsTr("Stats overlay")
                 V.Toggle {
-                    implicitHeight: Theme.px(36)
+                    implicitHeight: menu.controlHeight
                     checked: Chiaki.settings.showStreamStats
                     onToggled: Chiaki.settings.showStreamStats = checked
                     Accessible.name: qsTr("Latency overlay")
                 }
             }
             MenuRow {
-                iconName: "image"
-                label: qsTr("Clean view")
-                caption: qsTr("Nothing over the picture: no readout, hints or notices")
-                V.Toggle {
-                    implicitHeight: Theme.px(34)
-                    checked: Vice.cleanView
-                    onToggled: Vice.cleanView = checked
-                    Accessible.name: qsTr("Clean view")
+                iconName: "pulse"
+                label: qsTr("Overlay size")
+                visible: Chiaki.settings.showStreamStats
+                V.Segmented {
+                    readonly property var sizes: ["full", "compact", "mini"]
+                    width: menu.controlWidth
+                    implicitHeight: menu.controlHeight
+                    textSize: menu.smallText
+                    model: [qsTr("Full"), qsTr("Small"), qsTr("Mini")]
+                    currentIndex: Math.max(0, sizes.indexOf(Vice.readoutSize))
+                    onActivated: (index) => Vice.readoutSize = sizes[index]
+                    Accessible.name: qsTr("Overlay size")
                 }
             }
-            MenuRow {
-                iconName: "monitor"
-                // The stream's own size and the window it is scaled to are different things
-                label: ""
-                V.Label {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: column.width - Theme.px(40)
-                    font.pixelSize: Theme.textSmall
-                    elide: Text.ElideRight
-                    text: {
-                        const names = ["360p", "540p", "720p", "1080p"];
-                        const stream = names[Chiaki.settings["resolution" + menu.streamId] - 1] || "—";
-                        return qsTr("%1 stream, shown at %2 × %3").arg(stream).arg(Math.round(menu.width > 0 ? Screen.devicePixelRatio * menu.Window.width : 0)).arg(Math.round(Screen.devicePixelRatio * menu.Window.height));
-                    }
-                }
-            }
-
-            Item { width: 1; height: Theme.px(8) }
-
-            V.Button {
-                width: parent.width
-                kind: "outline"
-                implicitHeight: Theme.px(44)
-                iconName: "replay"
-                text: !Engine.replayEnabled ? qsTr("Turn on replay capture") : Engine.replaySaving ? qsTr("Saving…") : qsTr("Save last 30 seconds")
-                enabled: !Engine.replayEnabled || Engine.replaySeconds >= 1
-                busy: Engine.replaySaving
-                onTriggered: Engine.replayEnabled ? Engine.saveReplay() : Engine.replayEnabled = true
-            }
+            Rectangle { width: parent.width; height: 1; color: Theme.alpha(Theme.text, 0.09) }
+            // The stream's own size and the window it is scaled to are different things
             V.Label {
-                visible: !Engine.replayEnabled || Engine.replaySeconds < 1
                 width: parent.width
+                topPadding: Theme.px(10)
                 horizontalAlignment: Text.AlignHCenter
-                topPadding: Theme.px(4)
-                text: !Engine.replayEnabled ? qsTr("Off by default: it costs a full picture every 15 seconds") : qsTr("Getting the replay ready…")
+                elide: Text.ElideRight
                 font.pixelSize: Theme.px(12)
                 color: Theme.textMuted
+                text: {
+                    const names = ["360p", "540p", "720p", "1080p"];
+                    const stream = names[Chiaki.settings["resolution" + menu.streamId] - 1] || "\u2014";
+                    return qsTr("%1 stream, shown at %2 \u00d7 %3").arg(stream).arg(Math.round(menu.width > 0 ? Screen.devicePixelRatio * menu.Window.width : 0)).arg(Math.round(Screen.devicePixelRatio * menu.Window.height));
+                }
             }
 
-            Item { width: 1; height: Theme.px(6) }
+            Item { width: 1; height: Theme.px(12) }
+        }
+    }
 
-            V.Button {
-                id: resumeButton
-                width: parent.width
-                implicitHeight: Theme.px(52)
-                font.pixelSize: Theme.px(26)
-                text: qsTr("Resume game")
-                focus: true
-                onTriggered: menu.resume()
-            }
+    // More settings below (or above) fade out instead of being cut off mid-row
+    Rectangle {
+        anchors { left: flick.left; right: flick.right; bottom: flick.bottom }
+        height: Theme.px(40)
+        visible: flick.contentY + flick.height < flick.contentHeight - 2
+        gradient: Gradient {
+            GradientStop { position: 0; color: Theme.alpha(Theme.surfaceSolid, 0) }
+            GradientStop { position: 1; color: Theme.surfaceSolid }
+        }
+        V.Icon { anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Theme.px(2) } name: "chevronDown"; size: Theme.px(16); weight: 2.2; color: Theme.textMuted }
+    }
+    Rectangle {
+        anchors { left: flick.left; right: flick.right; top: flick.top }
+        height: Theme.px(28)
+        visible: flick.contentY > 2
+        gradient: Gradient {
+            GradientStop { position: 0; color: Theme.surfaceSolid }
+            GradientStop { position: 1; color: Theme.alpha(Theme.surfaceSolid, 0) }
+        }
+    }
 
-            V.Button {
-                anchors.horizontalCenter: parent.horizontalCenter
-                kind: "text"
-                size: "sm"
-                text: qsTr("Disconnect")
-                font.pixelSize: Theme.px(22)
-                font.weight: Theme.weightButton
-                // Asks first; nothing is ended by opening or closing this menu
-                onTriggered: menu.disconnectRequested()
-                ink: Theme.error
-            }
+    // What you came to do stays put: only the settings above scroll
+    Column {
+        id: actions
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: Theme.unit * 1.5; leftMargin: Theme.px(30); rightMargin: Theme.px(30); bottomMargin: Theme.px(24) }
 
-            Rectangle { width: parent.width; height: Theme.border; color: Theme.alpha(Theme.text, 0.14) }
+        Rectangle { width: parent.width; height: 1; color: Theme.alpha(Theme.text, 0.14) }
+        Item { width: 1; height: Theme.px(8) }
 
+
+        V.Button {
+            width: parent.width
+            kind: "outline"
+            implicitHeight: Theme.px(36); font.pixelSize: Theme.px(14)
+            iconName: "replay"
+            text: !Engine.replayEnabled ? qsTr("Turn on replay capture") : Engine.replaySaving ? qsTr("Saving…") : qsTr("Save last 30 seconds")
+            enabled: !Engine.replayEnabled || Engine.replaySeconds >= 1
+            busy: Engine.replaySaving
+            onTriggered: Engine.replayEnabled ? Engine.saveReplay() : Engine.replayEnabled = true
+        }
+        V.Label {
+            visible: !Engine.replayEnabled || Engine.replaySeconds < 1
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            topPadding: Theme.px(4)
+            text: !Engine.replayEnabled ? qsTr("Off by default: it costs a full picture every 15 seconds") : qsTr("Getting the replay ready…")
+            font.pixelSize: Theme.px(12)
+            color: Theme.textMuted
+        }
+
+        Item { width: 1; height: Theme.px(8) }
+
+        V.Button {
+            id: resumeButton
+            width: parent.width
+            implicitHeight: Theme.px(42)
+            font.pixelSize: Theme.px(17)
+            text: qsTr("Resume game")
+            focus: true
+            onTriggered: menu.resume()
+        }
+
+        V.Button {
+            anchors.horizontalCenter: parent.horizontalCenter
+            kind: "text"
+            size: "sm"
+            text: qsTr("Disconnect")
+            font.pixelSize: Theme.px(14)
+            font.weight: Theme.weightButton
+            // Asks first; nothing is ended by opening or closing this menu
+            onTriggered: menu.disconnectRequested()
+            ink: Theme.error
+        }
+
+        Rectangle { width: parent.width; height: 1; color: Theme.alpha(Theme.text, 0.09) }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Theme.unit * 5
+            topPadding: Theme.px(10)
             Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Theme.unit * 5
-                topPadding: Theme.px(8)
-                Row {
-                    spacing: Theme.unit * 1.5
-                    V.Glyph { anchors.verticalCenter: parent.verticalCenter; button: "cross"; size: Theme.px(24) }
-                    V.Label { anchors.verticalCenter: parent.verticalCenter; text: qsTr("Select"); font.pixelSize: Theme.textLabel }
-                }
-                Row {
-                    spacing: Theme.unit * 1.5
-                    V.Glyph { anchors.verticalCenter: parent.verticalCenter; button: "moon"; size: Theme.px(24) }
-                    V.Label { anchors.verticalCenter: parent.verticalCenter; text: qsTr("Resume"); font.pixelSize: Theme.textLabel }
-                }
+                spacing: Theme.unit * 1.5
+                V.Glyph { anchors.verticalCenter: parent.verticalCenter; button: "cross"; size: Theme.px(20) }
+                V.Label { anchors.verticalCenter: parent.verticalCenter; text: qsTr("Select"); font.pixelSize: menu.smallText; color: Theme.textMuted }
+            }
+            Row {
+                spacing: Theme.unit * 1.5
+                V.Glyph { anchors.verticalCenter: parent.verticalCenter; button: "moon"; size: Theme.px(20) }
+                V.Label { anchors.verticalCenter: parent.verticalCenter; text: qsTr("Resume"); font.pixelSize: menu.smallText; color: Theme.textMuted }
             }
         }
     }

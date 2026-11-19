@@ -1,4 +1,7 @@
 #include "qmlcontroller.h"
+#ifdef CHIAKI_VICE_UI
+#include "vice/engine.h" // vice hook
+#endif
 
 #include <QTimer>
 #include <QKeyEvent>
@@ -87,6 +90,29 @@ bool QmlController::isDualSense() const
 bool QmlController::isHandheld() const
 {
     return controller->IsHandheld();
+}
+
+// vice hook: the controller's own name, without the identifier the log line carries after it
+QString QmlController::name() const
+{
+    const QString full = controller->GetName();
+    const int at = full.lastIndexOf(QStringLiteral(" ("));
+    QString name = (at > 0 ? full.left(at) : full).trimmed();
+#ifdef CHIAKI_VICE_UI
+    // Windows hands every XInput pad over as "XInput Controller #n"; ask the device itself
+    if (name.startsWith(QLatin1String("XInput Controller")) || name.isEmpty()) {
+        const QStringList ids = controller->GetVIDPIDString().remove(QStringLiteral("0x")).split(QLatin1Char(':'));
+        const quint16 vendor = ids.size() == 2 ? ids[0].toUShort(nullptr, 16) : 0;
+        const quint16 product = ids.size() == 2 ? ids[1].toUShort(nullptr, 16) : 0;
+        QString real = vicePlatformControllerName(vendor, product);
+        if (real.isEmpty() && vendor)
+            real = vicePlatformControllerName(0, 0);
+        if (!real.isEmpty())
+            name = real;
+        qInfo() << "Controller" << full << "ids" << controller->GetVIDPIDString() << "is" << name;
+    }
+#endif
+    return name;
 }
 
 bool QmlController::isPS() const

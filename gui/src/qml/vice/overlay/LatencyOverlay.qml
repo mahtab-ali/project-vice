@@ -18,62 +18,70 @@ Rectangle {
     readonly property var session: Chiaki.session
     readonly property string mode: Vice.modeOf(Chiaki.window.videoPreset)
 
-    implicitWidth: row.implicitWidth + Theme.unit * 5
-    implicitHeight: Theme.px(62)
-    radius: Theme.px(16)
-    color: Theme.alpha(Theme.surfaceSolid, 0.86)
-    border.width: Theme.border
+    // "full": everything. "compact": one line with the figures that matter while playing.
+    // "mini": frame rate and ping.
+    property string size: Vice.readoutSize
+    readonly property bool full: size === "full"
+    readonly property bool mini: size === "mini"
+
+    implicitWidth: row.implicitWidth + (full ? Theme.unit * 5 : Theme.px(22))
+    implicitHeight: full ? Theme.px(62) : Theme.px(30)
+    radius: full ? Theme.px(16) : height / 2
+    color: Theme.alpha(Theme.surfaceSolid, full ? 0.86 : 0.72)
+    border.width: full ? Theme.border : 0
     border.color: Theme.line
     Accessible.role: Accessible.StaticText
     Accessible.name: qsTr("Stream statistics")
 
-    component Rule: Rectangle { anchors.verticalCenter: parent.verticalCenter; width: Theme.border; height: Theme.px(32); color: Theme.alpha(Theme.text, 0.3) }
-    component Stat: Column {
+    // tier 0 shows in every size, 1 from compact up, 2 only in full
+    component Stat: Row {
         property alias label: statLabel.text
         property alias value: statValue.text
+        property int tier: 2
+        visible: tier === 0 || (tier === 1 && !overlay.mini) || overlay.full
         anchors.verticalCenter: parent.verticalCenter
-        V.Label { id: statLabel; font.pixelSize: Theme.textSmall }
-        V.Label { id: statValue; font.pixelSize: Theme.textBody; font.weight: Theme.weightButton }
+        spacing: overlay.full ? Theme.unit * 1.75 : Theme.px(10)
+        Rectangle { anchors.verticalCenter: parent.verticalCenter; width: Theme.border; height: overlay.full ? Theme.px(32) : Theme.px(12); color: Theme.alpha(Theme.text, 0.3) }
+        Grid {
+            anchors.verticalCenter: parent.verticalCenter
+            columns: overlay.full ? 1 : 2
+            columnSpacing: Theme.px(5)
+            verticalItemAlignment: Grid.AlignVCenter
+            V.Label { id: statLabel; font.pixelSize: overlay.full ? Theme.textSmall : Theme.px(11); color: overlay.full ? Theme.text : Theme.textMuted }
+            V.Label { id: statValue; font.pixelSize: overlay.full ? Theme.textBody : Theme.px(13); font.weight: Theme.weightButton }
+        }
     }
 
     Row {
         id: row
         anchors.centerIn: parent
-        spacing: Theme.unit * 1.75
+        spacing: overlay.full ? Theme.unit * 1.75 : Theme.px(10)
 
         Row {
             anchors.verticalCenter: parent.verticalCenter
+            visible: overlay.full
             spacing: Theme.unit * 1.25
             Rectangle { anchors.verticalCenter: parent.verticalCenter; width: Theme.px(12); height: width; radius: width / 2; color: Theme.pink }
             V.Label { anchors.verticalCenter: parent.verticalCenter; text: Vice.modeText(overlay.mode); font.pixelSize: Theme.textLabel; font.weight: Theme.weightStrong }
         }
-        Rule { }
+        Rectangle { anchors.verticalCenter: parent.verticalCenter; visible: overlay.full; width: Theme.border; height: Theme.px(32); color: Theme.alpha(Theme.text, 0.3) }
         V.Label {
             anchors.verticalCenter: parent.verticalCenter
             text: Vice.valueText(Engine.fps, "", 0) + " " + qsTr("fps")
-            font.pixelSize: Theme.px(28)
+            font.pixelSize: overlay.full ? Theme.px(28) : Theme.px(14)
             font.weight: Theme.weightDisplay
         }
-        Rule { }
-        Stat { label: qsTr("Mbps"); value: overlay.session ? Vice.valueText(overlay.session.measuredBitrate, "", 1) : "—" }
-        Rule { }
-        Stat { label: qsTr("Ping"); value: Vice.valueText(Engine.rttMs, " ms", 0) }
-        Rule { }
-        Stat { label: qsTr("Loss"); value: overlay.session ? Vice.valueText(overlay.session.averagePacketLoss * 100, "%", 1) : "—" }
-        Rule { }
+        Stat { tier: 1; label: qsTr("Mbps"); value: overlay.session ? Vice.valueText(overlay.session.measuredBitrate, "", 1) : "—" }
+        Stat { tier: 0; label: qsTr("Ping"); value: Vice.valueText(Engine.rttMs, " ms", 0) }
+        Stat { tier: 1; label: qsTr("Loss"); value: overlay.session ? Vice.valueText(overlay.session.averagePacketLoss * 100, "%", 1) : "—" }
         Stat { label: qsTr("Decode"); value: Vice.valueText(Engine.decodeMs, " ms", 1) }
-        Rule { }
         // Drawing a frame, which includes scaling it to the window
         Stat { label: qsTr("Render"); value: Vice.valueText(Engine.renderMs, " ms", 1) }
-        Rule { }
         // From a frame arriving to it being drawn: the client's share of the delay
-        Stat { label: qsTr("Client"); value: Vice.valueText(Engine.pipelineMs, " ms", 0) }
-        Rule { }
+        Stat { tier: 1; label: qsTr("Client"); value: Vice.valueText(Engine.pipelineMs, " ms", 0) }
         Stat { label: qsTr("Input"); value: Vice.valueText(Engine.inputMs, " ms", 1) }
-        Rule { }
         Stat { label: qsTr("Dropped"); value: Vice.valueText(Chiaki.window.droppedFrames, "", 0) }
-        Rule { }
         // Times in the last minute the link went quiet for three frames or more
-        Stat { label: qsTr("Pauses"); value: isNaN(Engine.fps) ? "—" : qsTr("%1/min").arg(Engine.stallsPerMinute) }
+        Stat { tier: 1; label: qsTr("Pauses"); value: isNaN(Engine.fps) ? "—" : qsTr("%1/min").arg(Engine.stallsPerMinute) }
     }
 }

@@ -183,6 +183,17 @@ QtObject {
         default: return;
         }
         keyboardNav = true;
+        // Up from the first control of a page goes to its header (Page.focusHeader),
+        // not round to the last control; inside a dialog or menu there is no header
+        if (event.key === Qt.Key_Up) {
+            let host = item.parent;
+            while (host && host.focusTrap !== true && typeof host.focusHeader !== "function")
+                host = host.parent;
+            if (host && host.focusTrap !== true && focusables(host, [])[0] === item && host.focusHeader()) {
+                event.accepted = true;
+                return;
+            }
+        }
         moveFocus(item, forward);
         event.accepted = true;
     }

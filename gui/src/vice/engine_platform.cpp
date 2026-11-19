@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 // The parts of the engine that differ per operating system.
 //
-// The Windows branches below have not been compiled or run: there is no
-// Windows build of this fork yet. They follow the API documentation and are
-// kept small so the first Windows build can check them quickly.
+// The Windows branches below compile and link with MinGW. The Wi-Fi query has
+// run on Windows 11 (the connection check shows its band and signal); the
+// session tuning runs only during a stream and has not run yet.
 
 #include "vice/engine.h"
 
 #include <QDir>
 #include <QFile>
+#include <QLoggingCategory>
+
+// What the session tuning did, so a user can see whether it took effect ("vice.platform" in the log)
+Q_LOGGING_CATEGORY(vicePlatformLog, "vice.platform", QtInfoMsg)
 
 #if defined(_WIN32)
 #include <winsock2.h>
@@ -17,6 +21,7 @@
 #include <timeapi.h>
 #include <wlanapi.h>
 #include <qos2.h>
+#include <setupapi.h>
 #else
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -44,8 +49,12 @@ void vicePlatformRaiseCurrentThread()
 {
 #if defined(_WIN32)
 	DWORD task = 0;
-	AvSetMmThreadCharacteristicsW(L"Games", &task);
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	const bool mmcss = AvSetMmThreadCharacteristicsW(L"Games", &task) != nullptr;
+	const DWORD mmcss_error = mmcss ? 0 : GetLastError();
+	const bool raised = SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	qCInfo(vicePlatformLog) << "thread" << GetCurrentThreadId() << "multimedia class Games:" << (mmcss ? "on" : "failed")
+		<< (mmcss ? QString() : QStringLiteral("(error %1)").arg(mmcss_error))
+		<< "priority highest:" << (raised ? "on" : "failed");
 #elif defined(__APPLE__)
 	pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #elif defined(__linux__)
@@ -67,11 +76,15 @@ void vicePlatformTagSocket(chiaki_socket_t sock)
 	QOS_VERSION version = { 1, 0 };
 	if(!qos_handle && !QOSCreateHandle(&version, &qos_handle))
 	{
+		qCInfo(vicePlatformLog) << "packet priority: QoS service unavailable, error" << GetLastError();
 		qos_handle = nullptr;
 		return;
 	}
 	QOS_FLOWID flow = 0;
-	QOSAddSocketToFlow(qos_handle, sock, nullptr, QOSTrafficTypeAudioVideo, QOS_NON_ADAPTIVE_FLOW, &flow);
+	if(QOSAddSocketToFlow(qos_handle, sock, nullptr, QOSTrafficTypeAudioVideo, QOS_NON_ADAPTIVE_FLOW, &flow))
+		qCInfo(vicePlatformLog) << "packet priority: stream socket added to an audio/video QoS flow" << flow;
+	else
+		qCInfo(vicePlatformLog) << "packet priority: QOSAddSocketToFlow failed, error" << GetLastError();
 #else
 	// Expedited forwarding (DSCP 46)
 	int tos = 0xB8;
@@ -94,12 +107,14 @@ static void endSessionTuning()
 	{
 		timeEndPeriod(1);
 		timer_raised = false;
+		qCInfo(vicePlatformLog) << "1 ms timers: released";
 	}
 	// Closing the handle puts streaming mode and background scanning back as they were
 	if(wlan_handle)
 	{
 		WlanCloseHandle(wlan_handle, nullptr);
 		wlan_handle = nullptr;
+		qCInfo(vicePlatformLog) << "Wi-Fi streaming mode: released";
 	}
 }
 #endif
@@ -108,7 +123,10 @@ void vicePlatformSessionBegin(bool system_tuning)
 {
 #if defined(_WIN32)
 	if(!system_tuning)
+	{
+		qCInfo(vicePlatformLog) << "Windows session tuning: off";
 		return;
+	}
 	static bool exit_registered = false;
 	if(!exit_registered)
 	{
@@ -118,10 +136,14 @@ void vicePlatformSessionBegin(bool system_tuning)
 	}
 	if(!timer_raised && timeBeginPeriod(1) == TIMERR_NOERROR)
 		timer_raised = true;
+	qCInfo(vicePlatformLog) << "1 ms timers:" << (timer_raised ? "on" : "failed");
 
 	DWORD negotiated = 0;
 	if(!wlan_handle && WlanOpenHandle(2, nullptr, &negotiated, &wlan_handle) != ERROR_SUCCESS)
+	{
+		qCInfo(vicePlatformLog) << "Wi-Fi streaming mode: WLAN service unavailable";
 		wlan_handle = nullptr;
+	}
 	if(wlan_handle)
 	{
 		PWLAN_INTERFACE_INFO_LIST list = nullptr;
@@ -133,8 +155,11 @@ void vicePlatformSessionBegin(bool system_tuning)
 				if(list->InterfaceInfo[i].isState != wlan_interface_state_connected)
 					continue;
 				const GUID *guid = &list->InterfaceInfo[i].InterfaceGuid;
-				WlanSetInterface(wlan_handle, guid, wlan_intf_opcode_media_streaming_mode, sizeof(on), &on, nullptr);
-				WlanSetInterface(wlan_handle, guid, wlan_intf_opcode_background_scan_enabled, sizeof(off), &off, nullptr);
+				const DWORD streaming = WlanSetInterface(wlan_handle, guid, wlan_intf_opcode_media_streaming_mode, sizeof(on), &on, nullptr);
+				const DWORD scan = WlanSetInterface(wlan_handle, guid, wlan_intf_opcode_background_scan_enabled, sizeof(off), &off, nullptr);
+				qCInfo(vicePlatformLog) << "Wi-Fi" << QString::fromWCharArray(list->InterfaceInfo[i].strInterfaceDescription)
+					<< "streaming mode:" << (streaming == ERROR_SUCCESS ? QStringLiteral("on") : QStringLiteral("failed (error %1)").arg(streaming))
+					<< "background scan off:" << (scan == ERROR_SUCCESS ? QStringLiteral("on") : QStringLiteral("failed (error %1)").arg(scan));
 			}
 			WlanFreeMemory(list);
 		}
@@ -157,6 +182,48 @@ bool vicePlatformSystemTuningSupported()
 	return true;
 #else
 	return false;
+#endif
+}
+
+// ---- What a controller calls itself ------------------------------------------------
+
+QString vicePlatformControllerName(quint16 vendor, quint16 product)
+{
+#if defined(_WIN32)
+	// DEVPKEY_Device_BusReportedDeviceDesc: the product string from the device itself
+	static const DEVPROPKEY bus_reported = { { 0x540b947e, 0x8b40, 0x45bc, { 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2 } }, 4 };
+	HDEVINFO devices = SetupDiGetClassDevsW(nullptr, L"USB", nullptr, DIGCF_PRESENT | DIGCF_ALLCLASSES);
+	if(devices == INVALID_HANDLE_VALUE)
+		return QString();
+	const QString wanted = vendor ? QStringLiteral("VID_%1&PID_%2").arg(vendor, 4, 16, QChar('0')).arg(product, 4, 16, QChar('0')).toUpper() : QString();
+	QString found;
+	SP_DEVINFO_DATA info = {};
+	info.cbSize = sizeof(info);
+	for(DWORD i = 0; found.isEmpty() && SetupDiEnumDeviceInfo(devices, i, &info); i++)
+	{
+		wchar_t id[512] = {};
+		if(!SetupDiGetDeviceInstanceIdW(devices, &info, id, 511, nullptr))
+			continue;
+		const QString instance = QString::fromWCharArray(id).toUpper();
+		// "IG_" marks the XInput interface of a controller; with no IDs to go by, the first one is it
+		if(wanted.isEmpty() ? !instance.contains(QLatin1String("&IG_")) : !instance.contains(wanted))
+			continue;
+		wchar_t text[512] = {};
+		DEVPROPTYPE type = 0;
+		if(!SetupDiGetDevicePropertyW(devices, &info, &bus_reported, &type, reinterpret_cast<PBYTE>(text), sizeof(text) - sizeof(wchar_t), nullptr, 0))
+			continue;
+		QString name = QString::fromWCharArray(text).trimmed();
+		// The XInput interface wraps it: "Controller (Victrix Pro BFG ...)"
+		if(name.startsWith(QLatin1String("Controller (")) && name.endsWith(QLatin1Char(')')))
+			name = name.mid(12, name.size() - 13).trimmed();
+		found = name;
+	}
+	SetupDiDestroyDeviceInfoList(devices);
+	return found;
+#else
+	(void)vendor;
+	(void)product;
+	return QString();
 #endif
 }
 

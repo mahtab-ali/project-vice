@@ -13,11 +13,13 @@ import QtQuick.Controls.Material
 import org.streetpea.chiaking
 import vice.backend
 
-// A file in +vice/ stands in for the file of the same name one folder up,
-// and its imports resolve as if it were that file: so "vice", not "../vice".
-import "vice"
-import "vice/components" as V
-import "vice/screens" as Screens
+// A file in +vice/ stands in for the file of the same name one folder up.
+// Which folder its relative imports resolve from changed in Qt 6.11, so the
+// Vice folders are imported as modules, found the same way on every version.
+import vice
+import vice.components as V
+import vice.screens as Screens
+import vice.upstream as Up
 
 Item {
     id: root
@@ -334,8 +336,73 @@ Item {
         stack.push(psnTokenDialogComponent, {psnurl: psnurl, expired: expired});
     }
 
+    // vice: a controller with no touchpad gets one assigned (see Vice.viewSendsTouchpad)
+    Binding { target: Engine; property: "viewAsTouchpad"; value: Vice.viewSendsTouchpad(Chiaki.controllers) }
+
+    // vice: button mapping is two steps, as the backend needs: first the controller says which
+    // one it is by having a button pressed, then its buttons are listed to change. Opening the
+    // list on its own (as this did before) shows an empty page.
+    property bool mappingWait: false
     function showControllerMappingDialog() {
-        stack.push(controllerMappingDialogComponent)
+        if (!Chiaki.controllers.length) {
+            Vice.notify({ key: "map-none", severity: "warning", title: qsTr("No controller connected"), body: qsTr("Connect a controller, then open button mapping again.") });
+            return;
+        }
+        if (Chiaki.controllerMappingInProgress) {
+            stack.push(controllerMappingDialogComponent);
+            return;
+        }
+        mappingWait = true;
+        Chiaki.beginControllerMapping(false);
+        Vice.ask({
+            key: "map-pick",
+            severity: "info",
+            title: qsTr("Press a button on your controller"),
+            body: qsTr("Press any button on the controller you want to set up. Connected: %1.").arg(Chiaki.controllers.map(c => Vice.controllerName(c)).join(", ")),
+            primary: { text: qsTr("Cancel"), run: () => mappingCancel.restart() },
+            cancel: "primary"
+        });
+    }
+    // The press that picks the controller can also land on Cancel; give the backend a
+    // moment to say a controller was picked before treating it as a real cancel
+    Timer {
+        id: mappingCancel
+        interval: 250
+        onTriggered: {
+            if (!root.mappingWait)
+                return;
+            root.mappingWait = false;
+            if (Chiaki.controllerMappingInProgress)
+                root.mappingOpen();
+            else
+                Chiaki.controllerMappingQuit();
+        }
+    }
+    function mappingOpen() {
+        Vice.closeDialog("map-pick");
+        stack.push(controllerMappingDialogComponent);
+        // A pad with no touchpad (Xbox layout, most third-party pads) has nothing sending it yet
+        if (!Chiaki.controllers.some(c => c.playStation))
+            Vice.notify({ key: "map-touchpad", severity: "info", title: qsTr("No touchpad on this controller"),
+                          body: Engine.viewAsTouchpad ? qsTr("View already sends the touchpad click, and View with Menu sends Create. Change that in Settings, Input.")
+                                                     : qsTr("Give Touchpad a spare button here, or set what View sends in Settings, Input.") });
+    }
+    Connections {
+        target: Chiaki
+        function onControllerMappingInProgressChanged() {
+            if (root.mappingWait && Chiaki.controllerMappingInProgress) {
+                root.mappingWait = false;
+                mappingCancel.stop();
+                root.mappingOpen();
+            }
+        }
+        function onControllerMappingSteamControllerSelected() {
+            root.mappingWait = false;
+            mappingCancel.stop();
+            Vice.closeDialog("map-pick");
+            Vice.notify({ key: "map-steam", severity: "info", title: qsTr("This controller is managed by Steam"),
+                          body: qsTr("Steam Input owns its buttons. Change them in Steam: Controller settings for Project Vice.") });
+        }
     }
 
     // ---- Vice: navigation ---------------------------------------------------
@@ -352,6 +419,8 @@ Item {
             if (stack.depth > 1)
                 stack.pop(null, StackView.Immediate);
             stack.replace(stack.get(0), tabComponents[id], properties || {});
+            // The control that asked for the switch is gone with its page; never leave focus with it
+            Qt.callLater(() => { const now = stack.currentItem; if (now && typeof now.refocusIfLost === "function") now.refocusIfLost() });
         };
         // A page with unsaved edits gets to ask before it is left
         const page = stack.currentItem;
@@ -808,7 +877,17 @@ Item {
     }
 
     // Focus rings follow how the user is driving the app (see Theme.keyboardNav)
-    HoverHandler { onPointChanged: Theme.keyboardNav = false }
+    // Only a pointer that really moved counts: Qt re-reports a still pointer whenever the
+    // scene under it changes, and that was switching the focus ring off as soon as it showed.
+    HoverHandler {
+        property point last: Qt.point(-1, -1)
+        onPointChanged: {
+            const at = point.position;
+            if (last.x >= 0 && Math.abs(at.x - last.x) + Math.abs(at.y - last.y) > 3)
+                Theme.keyboardNav = false;
+            last = Qt.point(at.x, at.y);
+        }
+    }
 
     // A handheld (Steam Deck) is told by its built-in controls
     Binding { target: Theme; property: "handheld"; value: Chiaki.controllers.some(c => c.handheld === true) }
@@ -1085,6 +1164,12 @@ Item {
         }
     }
 
+    // The layer pop-ups live in takes its size from a window Qt shows itself. This app draws
+    // through a render control, and from Qt 6.11 that layer is then left at 0 x 0: a dialog
+    // centred in it lands off screen with no height, and its dimming covers nothing.
+    Binding { target: root.Overlay.overlay; property: "width"; value: root.width; when: root.Overlay.overlay !== null }
+    Binding { target: root.Overlay.overlay; property: "height"; value: root.height; when: root.Overlay.overlay !== null }
+
     // ---- Vice: the one notification host and the one dialog host ------------
 
     V.NotificationHost {
@@ -1206,16 +1291,16 @@ Item {
     Component { id: benchmarkComponent; Screens.Benchmark { } }
     Component { id: remotePlayComponent; Screens.RemotePlay { } }
 
-    Component { id: streamViewComponent; StreamView { } }
-    Component { id: autoConnectViewComponent; AutoConnectView { } }
-    Component { id: psnViewComponent; PsnView { } }
-    Component { id: manualHostDialogComponent; ManualHostDialog { } }
-    Component { id: settingsDialogComponent; SettingsDialog { } }
-    Component { id: displaySettingsDialogComponent; DisplaySettingsDialog { } }
-    Component { id: placeboSettingsDialogComponent; PlaceboSettingsDialog { } }
-    Component { id: placeboColorMappingDialogComponent; PlaceboColorMappingDialog { } }
-    Component { id: consolePinDialogComponent; ConsolePinDialog { } }
-    Component { id: steamShortcutDialogComponent; SteamShortcutDialog { } }
-    Component { id: psnTokenDialogComponent; PSNTokenDialog { } }
-    Component { id: controllerMappingDialogComponent; ControllerMappingDialog { } }
+    Component { id: streamViewComponent; Up.StreamView { } }
+    Component { id: autoConnectViewComponent; Up.AutoConnectView { } }
+    Component { id: psnViewComponent; Up.PsnView { } }
+    Component { id: manualHostDialogComponent; Up.ManualHostDialog { } }
+    Component { id: settingsDialogComponent; Up.SettingsDialog { } }
+    Component { id: displaySettingsDialogComponent; Up.DisplaySettingsDialog { } }
+    Component { id: placeboSettingsDialogComponent; Up.PlaceboSettingsDialog { } }
+    Component { id: placeboColorMappingDialogComponent; Up.PlaceboColorMappingDialog { } }
+    Component { id: consolePinDialogComponent; Up.ConsolePinDialog { } }
+    Component { id: steamShortcutDialogComponent; Up.SteamShortcutDialog { } }
+    Component { id: psnTokenDialogComponent; Up.PSNTokenDialog { } }
+    Component { id: controllerMappingDialogComponent; Up.ControllerMappingDialog { } }
 }

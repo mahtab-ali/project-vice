@@ -3,8 +3,8 @@
 // behaviour is kept: read-only until Return or a click, so a controller can
 // move past it, and Escape or Return ends editing.
 import QtQuick
-import "../vice"
-import "../vice/components" as V
+import vice
+import vice.components as V
 
 V.TextInput {
     id: field

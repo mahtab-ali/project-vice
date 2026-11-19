@@ -93,21 +93,24 @@ enqueue_dependency() {
     fi
 }
 
-while [[ ${#queue[@]} -gt 0 ]]; do
-    current="${queue[0]}"
-    queue=("${queue[@]:1}")
+resolve_queue() {
+    while [[ ${#queue[@]} -gt 0 ]]; do
+        current="${queue[0]}"
+        queue=("${queue[@]:1}")
 
-    if [[ -n "${scanned_paths["$current"]+x}" ]]; then
-        continue
-    fi
-    scanned_paths["$current"]=1
+        if [[ -n "${scanned_paths["$current"]+x}" ]]; then
+            continue
+        fi
+        scanned_paths["$current"]=1
 
-    # A command substitution, not a process substitution, so a failed read stops the script
-    dependencies="$(extract_dependencies "$current")"
-    while IFS= read -r dependency; do
-        enqueue_dependency "$dependency"
-    done <<< "$dependencies"
-done
+        # A command substitution, not a process substitution, so a failed read stops the script
+        dependencies="$(extract_dependencies "$current")"
+        while IFS= read -r dependency; do
+            enqueue_dependency "$dependency"
+        done <<< "$dependencies"
+    done
+}
+resolve_queue
 
 # Ensure SDL3 is bundled even if ldd/Qt doesn't list it.
 shopt -s nullglob
@@ -122,6 +125,13 @@ done
 shopt -u nullglob
 
 windeployqt6.exe --no-translations --qmldir="$qml_dir" "$output_dir/$(basename "$exe_path")"
+
+# vice: windeployqt adds Qt's plugins but not the MSYS2 libraries they load (qjpeg needs
+# libjpeg-8.dll, without which the JPEG background artwork does not decode), so walk them too
+while IFS= read -r -d '' plugin; do
+    queue+=("$plugin")
+done < <(find "$output_dir" -mindepth 2 -name '*.dll' -print0)
+resolve_queue
 
 # Remove system-provided DLLs that Windows already supplies and
 # should not be bundled with the MSYS2 build (e.g. D3D compiler). Use
