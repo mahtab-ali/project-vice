@@ -65,7 +65,7 @@ Measured on an M2 Pro MacBook over 5 GHz Wi-Fi, 1080p 60 fps: decode about 3 ms,
 ## Not available yet
 
 - **RTX Video upscaling and HDR conversion.** Needs NVIDIA's SDK, Windows and an RTX card. Listed in Settings as unavailable; the built-in scalers stay usable.
-- **Windows.** Not built for this fork; the Windows-only tuning code is unverified.
+- **Windows.** Not built for this fork yet (see Building). The Windows-only tuning code compiles in a syntax check and has never run.
 - **Discovery failure.** The backend does not report it, so Home tells apart only searching, nothing found and search turned off.
 - **Stream readout and notifications over the video with the OpenGL renderer.** QML cannot be drawn over the video there. Dialogs and the quick menu use separate windows; the readout falls back to upstream's.
 - **In-game touch targets and the Steam Deck controller layout** are written and have not been run on a Deck.
@@ -143,7 +143,16 @@ podman run --rm --volume "$(pwd):/build/chiaki:Z" -w /build/chiaki \
 
 Settings live in `~/.config/Project Vice/Project Vice.conf` on Linux. `steamos-add-to-steam <path to the AppImage>` adds it to the Steam library.
 
-**Windows** uses upstream's recipes: `.github/workflows/build-windows-x86.yml` (MSVC) or `build-msys2.yml` list the steps. It has not been built for this fork yet. Nothing builds on GitHub: Actions is turned off for the repository, and release builds will be published separately.
+**Windows.** Install [MSYS2](https://www.msys2.org), open its "MSYS2 MINGW64" shell, then:
+
+```
+git clone --recursive <this repository> project-vice && cd project-vice
+scripts/build-windows-msys2.sh
+```
+
+The script installs the packages, builds or fetches the dependencies upstream's recipe does (libplacebo, an FFmpeg build, SDL), builds the app and makes `ProjectVice-Win/`, a folder that runs on its own (`ProjectVice.exe`). It follows `.github/workflows/build-msys2.yml` step for step and has not been run for this fork yet, so the first run may need a fix in the script. The Vice C++ sources, Windows-only parts included, pass a syntax check with the MinGW compiler; they have not been linked or run on Windows. Vulkan comes from the graphics driver there, so nothing like MoltenVK is needed. Settings are kept in the registry under `HKEY_CURRENT_USER\Software\Project Vice`, so a Windows install starts unpaired: pair the console with its 8-digit code from Home.
+
+Nothing builds on GitHub: Actions is turned off for the repository, and release builds will be published separately.
 
 ## Preview, screenshots and tests
 

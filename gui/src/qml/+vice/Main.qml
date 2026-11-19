@@ -422,6 +422,11 @@ Item {
     function connectOrPair(entry) {
         if (!entry)
             return;
+        // A game is already streaming here: show it, never start a second connection over it
+        if (Chiaki.session) {
+            ensureStreamShown();
+            return;
+        }
         Vice.target = Vice.describe(entry);
         if (entry.host.registered || Vice.isRemote(entry.host))
             showChooseMode(entry);
@@ -434,6 +439,10 @@ Item {
         const entry = findConsole(key);
         if (!entry)
             return false;
+        if (Chiaki.session) {
+            ensureStreamShown();
+            return true;
+        }
         Vice.target = Vice.describe(entry);
         Vice.failed = null;
         attempt = { op: Vice.beginOp("connect"), key: entry.key, connected: false, error: "", benchmark: bench !== null };
