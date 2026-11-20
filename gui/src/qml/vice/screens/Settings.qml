@@ -67,7 +67,7 @@ V.Page {
               hint: qsTr("720p, 60 fps, 8 Mbps: holds up on most connections"), run: () => page.useAwayPreset() },
             { group: qsTr("Upscaling") },
             { key: "upscaler", label: qsTr("Upscaler"), type: "choice", local: true, options: [qsTr("Built-in"), qsTr("RTX Video")], disabled: Engine.rtxPossible ? [] : [1],
-              hint: Engine.rtxPossible ? qsTr("RTX Video: sharper, about 7 ms more delay. Needs an RTX card and Super Resolution turned on in the NVIDIA app (System, Video).")
+              hint: Engine.rtxPossible ? qsTr("RTX Video: the sharpest picture, about 13 ms more delay. Needs an RTX card and Super Resolution turned on in the NVIDIA app (System, Video).")
                                        : qsTr("RTX Video needs Windows and an NVIDIA RTX card"),
               chip: Engine.rtxPossible ? "" : qsTr("RTX Video not available"),
               get: () => Engine.rtxSuperResolution ? 1 : 0, set: (v) => Engine.rtxSuperResolution = v === 1 },

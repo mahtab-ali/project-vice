@@ -10,9 +10,10 @@
 // Cost: the stream is decoded with Direct3D 11 instead of Vulkan, and the enlarged frame is
 // read back to memory for the Vulkan renderer. The time taken is logged ("vice.rtx").
 //
-// Measured on an RTX 5060 laptop, 1080p to 1440p, on one still screen: edge sharpness 352
-// with it on against 197 with the same path and the driver's part off, and 259 for the app's
-// own Quality scaler; about 7 ms a frame and 42% GPU load against 19%.
+// Measured on an RTX 5060 laptop, 1080p to 1440p, on one still screen: edge sharpness 356
+// with it on against 197 with the same path and the driver's part off, and 263 for the app's
+// own Quality scaler. This function takes about 7 ms a frame; the whole client path, frame
+// received to frame on screen, goes from 4 to 7 ms to 18 to 19 ms, and GPU load from 15% to 43%.
 //
 // The driver obeys only when "RTX Video Enhancement: Super Resolution" is on in the NVIDIA
 // app (System, Video). With it off the request is accepted and nothing happens, and nothing

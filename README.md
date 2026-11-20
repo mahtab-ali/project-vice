@@ -43,7 +43,7 @@ Remote Play sends a compressed video of the game over your network. What you see
 
 - **Hardware decoding.** The video is decoded on the graphics card, not the processor: Vulkan video or Direct3D 11 on Windows, VideoToolbox on a Mac, Vulkan video or VA-API on a Steam Deck.
 - **Drawn with Vulkan.** Each frame goes to the screen through a Vulkan renderer, and the newest frame is always the one drawn; nothing waits in a queue. On a Mac the app carries its own MoltenVK, so this works with nothing else installed.
-- **RTX Video Super Resolution on Windows.** With an NVIDIA RTX card, the driver's own AI upscaler enlarges the 1080p stream to your monitor's size. Project Vice asks the driver for it directly, so no NVIDIA software ships with the app. It is sharper than the built-in scalers for about 7 ms more delay. Turn on "RTX Video Enhancement: Super Resolution" in the NVIDIA app, then choose RTX Video under Settings, Video, Upscaler.
+- **RTX Video Super Resolution on Windows.** With an NVIDIA RTX card, the driver's own AI upscaler enlarges the 1080p stream to your monitor's size. Project Vice asks the driver for it directly, so no NVIDIA software ships with the app. It is the sharpest picture the app can show, for about 13 ms more delay. Turn on "RTX Video Enhancement: Super Resolution" in the NVIDIA app, then choose RTX Video under Settings, Video, Upscaler.
 - **HDR from the console.** Choose "H265 with HDR" as the codec, with an HDR display and HDR turned on in the system.
 - **Two modes.** Game for the least delay, Quality for a sharper picture, remembered per game profile.
 
@@ -82,33 +82,52 @@ Remote Play sends a compressed video of the game over your network. What you see
 
 This is a frame of GTA VI from a Project Vice stream on Windows 11, with the app's own stats overlay across the top. Nothing in it is a sample value: the bar shows what the app measured at that moment.
 
-![GTA VI streamed to Windows through Project Vice, with the stats overlay showing live measurements](screenshots/windows-gameplay.jpg)
+![GTA VI streamed to Windows through Project Vice in Game mode, with the stats overlay showing live measurements](screenshots/windows-gameplay.jpg)
 
-Read from that bar and from the same session: the stream arrives at 60 frames a second while the game itself draws 30; the round trip to the console is 4 ms; no packets are lost; a frame is decoded in 0.6 ms and drawn in 0.4 ms; and from a frame arriving to it being on screen takes 4 ms.
+Three sessions were played back to back on the same console, in the same spot in the game, one in each mode. The figures are what the overlay showed.
 
 | What | Game mode | Quality mode | Quality mode with RTX Video |
 | --- | --- | --- | --- |
-| Edge sharpness of the picture (higher is sharper) | 193 | 259 | 352 |
-| Decoding a frame | 0.6 ms | 0.7 ms | not measured |
-| Drawing a frame, scaling included | 0.4 ms | 0.9 ms | about 7 ms more than Quality mode |
-| Frame arriving to frame on screen | 4 ms | 5 ms | not measured |
-| Controller change to it being sent | 0.1 ms | 0.1 ms | not measured |
-| Graphics card load | not measured | 16% | 42% |
+| Stream frame rate, and the game's own | 60 fps, game 30 fps | 60 fps, game 30 fps | 60 fps, game 30 fps |
+| Round trip to the console | 3 ms | 3 ms | 4 ms |
+| Packets lost | 0.0% | 0.0% | 0.0% |
+| Sharpness of the pause menu's text (higher is sharper) | 196 | 263 | 356 |
+| Sharpness of a poster in the game world | 128 | 161 | 225 |
+| Frame received to frame ready to draw | 0.5 ms | 0.5 ms | 8.3 ms |
+| Drawing the frame | 0.4 ms | 0.7 ms | 0.5 ms |
+| Frame received to frame on screen | 4 to 5 ms | 4 to 7 ms | 18 to 19 ms |
+| Controller change to it being sent | 0.1 ms | 0.1 ms | 0.1 ms |
+| Graphics card load | 34 to 36% | 15 to 16% | 41 to 44% |
 
-The machine: a laptop with an NVIDIA RTX 5060 and a 2560 x 1600 screen, Windows 11, a PS5 on the same 5 GHz Wi-Fi network, GTA VI, a 1080p 60 fps HEVC stream shown at 2560 x 1440.
+What the table says. RTX Video is clearly the sharpest picture, and it costs delay: about 13 ms more from a frame arriving to it being on screen, of which the driver's enhancement itself is about 7 ms and the rest is decoding through Direct3D and handing the enlarged frame to the renderer. Quality mode is sharper than Game mode for about a millisecond. Game mode loaded the graphics card more than Quality mode did; that was not expected and has not been looked into.
 
-The sharpness figure is the variance of the Laplacian over the same patch of the game's pause menu, captured from the screen under each setting. Here is that patch, pixel for pixel and enlarged three times:
+The same two patches of the picture under each setting, pixel for pixel and enlarged three times:
 
-![The same patch of the game's pause menu in Game mode, Quality mode and with RTX Video Super Resolution](screenshots/windows-upscaling.png)
+![The game's pause menu and a poster in the game world, in Game mode, Quality mode and with RTX Video Super Resolution](screenshots/windows-upscaling.png)
 
-What this does and does not show. The sharpness comparison is one still screen in one game, and the three captures come from separate sessions on the same day. Still text flatters a sharpening upscaler; the difference in motion has not been measured. The timings are what the overlay showed in a quiet indoor scene, not averages over a play session. The game drawing 30 pictures a second is the game's own choice on the console, which no client can raise.
+And the whole frame with RTX Video on:
+
+![GTA VI streamed to Windows with RTX Video Super Resolution on](screenshots/windows-gameplay-rtx.jpg)
+
+Beside the Mac, where the same overlay was read on the Mac build:
+
+| | Windows laptop, RTX 5060 | MacBook, M2 Pro |
+| --- | --- | --- |
+| Decoding a frame | 0.5 ms (Vulkan video) | about 3 ms (VideoToolbox) |
+| Drawing a frame | 0.4 to 0.7 ms | about 0.5 ms |
+| Frame received to frame on screen | 4 to 7 ms | 8 to 12 ms with Vulkan, 15 to 20 ms on the OpenGL fallback |
+| Driver upscaling | RTX Video Super Resolution | none; the built-in scalers |
+
+The Windows machine: a laptop with an NVIDIA RTX 5060 and a 2560 x 1600 screen, Windows 11, a PS5 on the same 5 GHz Wi-Fi network, a 1080p 60 fps HEVC stream shown at 2560 x 1440. The Mac: an M2 Pro MacBook on 5 GHz Wi-Fi, 1080p 60 fps.
+
+What this does and does not show. Sharpness is the variance of the Laplacian over the same patch of the screen, captured under each setting; still text flatters a sharpening upscaler, and nothing here was measured in motion. The timings are what the overlay showed in a quiet indoor scene over a few seconds, not averages over a play session, and the two machines were not on the same network. The game drawing 30 pictures a second is the game's own choice on the console, which no client can raise.
 
 ### What has been measured
 
 | Setup | What | Result |
 | --- | --- | --- |
-| Windows 11, RTX 5060 laptop, 1080p stream shown at 1440p | Edge sharpness (higher is sharper), one still screen | 352 with RTX Video; 259 with the Quality scaler; 193 in Game mode; 197 with Direct3D's plain scaling |
-| Same | Cost of RTX Video | About 7 ms a frame; GPU load 42% against 19% |
+| Windows 11, RTX 5060 laptop, 1080p stream shown at 1440p | Edge sharpness (higher is sharper), one still screen | 356 with RTX Video; 263 in Quality mode; 196 in Game mode; 197 with Direct3D's plain scaling |
+| Same | Cost of RTX Video | About 13 ms more from frame received to frame on screen (the driver's step is about 7 ms of it); GPU load 41 to 44% against 15 to 16% |
 | M2 Pro MacBook, 5 GHz Wi-Fi, 1080p 60 fps | Decode, draw, whole client pipeline | About 3 ms, 0.5 ms, 8 to 12 ms with Vulkan (15 to 20 ms on the OpenGL fallback) |
 
 These are single measurements on those machines, not promises for yours. On that Mac the benchmark found no measurable difference between the speed switches on and off. Run the benchmark in the app to see what you get on yours.
@@ -146,7 +165,7 @@ Do these once, at home, with the computer and the console on the same network.
 
 1. Download `ProjectVice-Setup-<version>.exe` and run it.
 2. Windows says the installer is from an unknown publisher, because it is not signed. Choose "More info", then "Run anyway".
-3. Follow the installer. It installs for your user account only, needs no administrator rights and adds a Start menu entry.
+3. Windows asks whether the installer may make changes: choose Yes. Follow the installer. It installs into Program Files for everyone who uses the computer and adds Start menu and desktop shortcuts.
 4. Open Project Vice from the Start menu.
 
 **Mac**
@@ -341,7 +360,7 @@ The app lists these in Settings, Shortcuts.
 
 **Performance**
 - Hardware video decoding, drawn with Vulkan (OpenGL as a fallback).
-- On Windows with an NVIDIA RTX card: RTX Video Super Resolution as the upscaler, through the graphics driver, with no NVIDIA software shipped. Sharper than the built-in scalers, for about 7 ms more delay. Turn on "RTX Video Enhancement: Super Resolution" in the NVIDIA app first.
+- On Windows with an NVIDIA RTX card: RTX Video Super Resolution as the upscaler, through the graphics driver, with no NVIDIA software shipped. The sharpest picture the app can show, for about 13 ms more delay. Turn on "RTX Video Enhancement: Super Resolution" in the NVIDIA app first.
 - Low-delay decoding, raised priority for the stream's threads and priority marking on stream packets.
 - On Windows, for the length of a session: 1 ms timers and Wi-Fi streaming mode with background scanning off.
 - A benchmark that plays two measured sessions, tuning off then on, and shows both.
