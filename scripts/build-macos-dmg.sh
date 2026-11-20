@@ -71,5 +71,40 @@ codesign --verify --deep --strict "$app"
 version="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Contents/Info.plist")"
 mkdir -p dist
 dmg="dist/ProjectVice-$version-$(uname -m).dmg"
-hdiutil create -volname "Project Vice" -srcfolder "$work/dmg" -ov -format UDZO "$dmg" >/dev/null
+
+# The window a person sees on opening the image: the app on the left, Applications on the
+# right, to drag one onto the other. Finder writes that layout into the image, so the image
+# is built writable, laid out, then compressed.
+[ ! -e "/Volumes/Project Vice" ] || { echo "Eject the mounted 'Project Vice' image first" >&2; exit 1; }
+hdiutil create -volname "Project Vice" -srcfolder "$work/dmg" -ov -format UDRW "$work/rw.dmg" >/dev/null
+hdiutil attach "$work/rw.dmg" -readwrite -noverify -noautoopen >/dev/null
+osascript >/dev/null <<'EOF' || echo "Finder did not lay the window out; the image still installs the same way" >&2
+tell application "Finder"
+    tell disk "Project Vice"
+        open
+        delay 1
+        tell container window
+            set current view to icon view
+            set toolbar visible to false
+            set statusbar visible to false
+        end tell
+        set position of item "Project Vice.app" of container window to {170, 170}
+        set position of item "Applications" of container window to {470, 170}
+        tell container window to set bounds to {200, 120, 840, 500}
+        delay 2
+        close
+    end tell
+end tell
+EOF
+sync
+hdiutil detach "/Volumes/Project Vice" >/dev/null
+# ponytail: Finder saves the window and the icon positions but keeps its own default icon
+# size (48) and "arrange by name", whatever the script asks. Both are set in the saved
+# settings directly, with the image mounted where Finder does not look. If a later macOS
+# stores them differently this changes nothing and the icons are just smaller.
+mkdir "$work/mnt"
+hdiutil attach "$work/rw.dmg" -readwrite -noverify -nobrowse -mountpoint "$work/mnt" >/dev/null
+[ ! -f "$work/mnt/.DS_Store" ] || perl -0777 -pi -e 's/\x23\x40\x48\x00{6}/\x23\x40\x60\x00\x00\x00\x00\x00\x00/; s/\x54name/\x54none/' "$work/mnt/.DS_Store"
+hdiutil detach "$work/mnt" >/dev/null
+hdiutil convert "$work/rw.dmg" -format UDZO -ov -o "$dmg" >/dev/null
 echo "$dmg"

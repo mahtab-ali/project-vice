@@ -144,7 +144,8 @@ Every build is on the [Releases](../../releases) page. Pick the file for your de
 | --- | --- |
 | Windows 10 or 11, 64-bit | `ProjectVice-Setup-<version>.exe` |
 | Mac with Apple silicon (M1 or newer), macOS 26 or newer | `ProjectVice-<version>-arm64.dmg` |
-| Steam Deck, or a 64-bit Intel or AMD Linux PC | `ProjectVice-<version>-x86_64.AppImage` |
+| Steam Deck | `ProjectVice-Install.desktop`, a small installer that downloads the app for you |
+| 64-bit Intel or AMD Linux PC | `ProjectVice-<version>-x86_64.AppImage`, or the same installer |
 
 There is no build for Intel Macs. Already using chiaki-ng? Its paired consoles and settings can be carried over; see "Moving from chiaki-ng" in [`VICE.md`](VICE.md).
 
@@ -170,8 +171,8 @@ Do these once, at home, with the computer and the console on the same network.
 
 **Mac**
 
-1. Download `ProjectVice-<version>-arm64.dmg` and open it.
-2. Drag Project Vice onto the Applications folder shown beside it.
+1. Download `ProjectVice-<version>-arm64.dmg` and open it. A window opens with Project Vice on the left and the Applications folder on the right.
+2. Drag Project Vice onto Applications.
 3. Open Project Vice from Applications. macOS blocks this first launch, because the app is not notarized by Apple. Choose "Done".
 4. Open System Settings, go to Privacy & Security, scroll down to the message about Project Vice and choose "Open Anyway". Confirm once more. From then on it opens normally.
 
@@ -179,13 +180,19 @@ Everything the app needs is inside it; there is nothing else to install.
 
 **Steam Deck**
 
-See [Steam Deck](#steam-deck) below: the install has a few steps of its own.
+Download `ProjectVice-Install.desktop` in Desktop Mode and double-click it. The full steps, with adding it to Steam, are under [Steam Deck](#steam-deck) below.
 
 **Linux PC**
 
-1. Download `ProjectVice-<version>-x86_64.AppImage`.
-2. Make it runnable: `chmod +x ProjectVice-*.AppImage`.
-3. Run it: `./ProjectVice-*.AppImage`.
+Paste this into a terminal:
+
+```
+curl -fsSL https://raw.githubusercontent.com/mahtab-ali/project-vice/main/scripts/install-linux.sh | bash
+```
+
+It downloads the newest build to `~/Applications/ProjectVice.AppImage`, adds Project Vice to the application menu and the desktop, and opens it. It asks for no password. Run it again to update.
+
+Or do it by hand: download `ProjectVice-<version>-x86_64.AppImage`, make it runnable with `chmod +x ProjectVice-*.AppImage`, and run it.
 
 ### Step 2: Get the console ready
 
@@ -292,9 +299,11 @@ A connection over the internet carries less than your home network. In Settings,
 **Install**
 
 1. Press the Steam button, choose Power, then "Switch to Desktop".
-2. In the browser, download `ProjectVice-<version>-x86_64.AppImage` from Releases. Move it somewhere it can stay, for example a folder named `Applications` in your home folder.
-3. Make it runnable: right-click the file, choose Properties, Permissions, and tick "Is executable".
-4. Double-click it to open Project Vice.
+2. In the browser, download `ProjectVice-Install.desktop` from [Releases](../../releases).
+3. Open the Downloads folder and double-click the file. The Deck asks whether to run it: choose "Continue" (or "Execute").
+4. A window shows the download, about 165 MB. When it finishes, Project Vice opens, and there is an icon for it on the desktop and in the application menu.
+
+The installer puts the app in `Applications` in your home folder and asks for no password. To update later, run the same file again. If you would rather not use it, download `ProjectVice-<version>-x86_64.AppImage`, tick "Is executable" under Properties, Permissions, and double-click it.
 
 **Set up, still in Desktop mode**
 
@@ -398,7 +407,7 @@ Early, and every build on the Releases page is a preview.
 
 - **Windows:** built and played on Windows 11 with an NVIDIA GPU and a PS5 over Wi-Fi. Not yet tried with a controller in hand: the second step of button mapping and the automatic touchpad assignment.
 - **Mac:** built and played on an Apple silicon Mac. The disk image has been started on the Mac that built it and not yet on another one. GTA VI has been streamed from a PS5 to this build at 1080p; the gameplay pictures at the top are from that session.
-- **Steam Deck:** an earlier build was installed and played on a Steam Deck (SteamOS 3.9). The AppImage on the Releases page was built in a container, where it starts as far as setting up the renderer; it has not been run on a Deck yet.
+- **Steam Deck:** an earlier build was installed and played on a Steam Deck (SteamOS 3.9). The AppImage on the Releases page was built in a container, where it starts as far as setting up the renderer; it has not been run on a Deck yet. The installer file was run in a Linux container, where it downloads the app and adds the menu and desktop entries; it has not been double-clicked on a Deck.
 - **Away from home:** both ways use the upstream project's connection code. Neither has been tried from outside the home network with this build.
 
 [`VICE.md`](VICE.md) has the details, what was measured and how the code is laid out.

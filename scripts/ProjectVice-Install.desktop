@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Install Project Vice
+Comment=Downloads Project Vice and adds it to the desktop and the application menu
+Exec=sh -c 'curl -fsSL https://raw.githubusercontent.com/mahtab-ali/project-vice/main/scripts/install-linux.sh | bash || { echo; echo The install did not finish. Press Enter to close.; read _; }'
+Icon=system-software-install
+Terminal=true
+StartupNotify=false
