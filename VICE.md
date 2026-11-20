@@ -154,6 +154,8 @@ podman run --rm --volume "$(pwd):/build/chiaki:Z" -w /build/chiaki \
   /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
 ```
 
+**Steam Deck and Linux, from another machine.** `scripts/build-appimage-docker.sh` runs the same build in the same container with Docker or Podman and writes `dist/ProjectVice-<version>-x86_64.AppImage` (about 165 MB). The checkout is mounted read-only and copied inside the container. It works on an Apple silicon Mac, where the container runs under x86-64 emulation: about ten minutes with Docker Desktop on an M2 Pro. Under emulation Linux refuses to start an AppImage because of three marker bytes in its header, so the script blanks them in the two build tools it downloads (linuxdeploy and its Qt plugin); the AppImage it produces is left as built. Checked for an image built this way: the library unit tests pass during the build, every library the program needs resolves inside the image or to the system's own graphics and C libraries, and the program starts and reaches renderer set-up in a container with no display. Not checked: running it on a Steam Deck or any Linux desktop.
+
 Settings live in `~/.config/Project Vice/Project Vice.conf` on Linux. `steamos-add-to-steam <path to the AppImage>` adds it to the Steam library.
 
 **Windows** (built and run on Windows 11 with MSYS2's Qt 6.12). Install [MSYS2](https://www.msys2.org), open its "MSYS2 MINGW64" shell, then:

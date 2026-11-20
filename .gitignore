@@ -44,5 +44,7 @@ site/
 /gui/vice-preview/shots/
 # vice: the Windows folder scripts/build-windows-msys2.sh makes
 /ProjectVice-Win/
-# vice: installers made by scripts/project-vice.iss; attached to Releases, not committed
+# vice: installers, disk images and AppImages made by scripts/project-vice.iss,
+# scripts/build-macos-dmg.sh and scripts/build-appimage-docker.sh;
+# attached to Releases, not committed
 /dist/
