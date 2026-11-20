@@ -4,6 +4,8 @@ Implement the approved Project Vice desktop UI in this repository. The fifteen n
 
 ## Scope and existing architecture
 
+Launcher branding is specified separately in `design/ICON_IMPLEMENTATION_PROMPT.md`, using `design/icons/project-vice-launcher.png`: option 2 with the full PROJECT VICE title in neon-gradient lettering. Preserve the approved screen UI while applying that icon to native launcher/window/package surfaces when launcher integration is in scope.
+
 - This is an existing C/C++ and Qt Quick/QML fork of chiaki-ng, targeting macOS, Windows, and Linux. Extend that application; do not create a website, Electron shell, Flutter application, or replacement streaming engine.
 - Read applicable `AGENTS.md` instructions, `VICE.md`, the current working-tree changes, and the existing UI before editing. Preserve unrelated and in-progress work. Do not initialize another Git repository or reset existing changes.
 - Start with `gui/src/qml/vice/Theme.qml`, `vice/components/`, `vice/screens/Home.qml`, `gui/src/qml/+vice/MainView.qml`, `gui/src/qml/vice.qrc`, and `gui/vice-preview/`.
