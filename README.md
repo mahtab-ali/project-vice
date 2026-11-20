@@ -8,7 +8,9 @@ Project Vice is a free, open-source Remote Play client for PC. Your console runs
 
 **Windows 10 and 11 (64-bit).** Download `ProjectVice-Setup-<version>.exe` from this repository's [Releases](../../releases) and run it. It installs for your user account, needs no administrator rights, and adds a Start menu entry. Windows may warn that the installer is unsigned: choose "More info", then "Run anyway".
 
-**macOS, Linux and Steam Deck.** Build from source; the steps are in [`VICE.md`](VICE.md).
+**macOS 26 or newer, Apple silicon.** Download `ProjectVice-<version>-arm64.dmg` from [Releases](../../releases), open it and drag Project Vice onto Applications. The app is not notarized by Apple, so macOS blocks the first launch: open System Settings, Privacy & Security, scroll to the message about Project Vice and choose "Open Anyway". Everything it needs is inside the app, including MoltenVK.
+
+**Linux and Steam Deck.** Build from source; the steps are in [`VICE.md`](VICE.md).
 
 Already using chiaki-ng? Its paired consoles and settings can be carried over; see "Moving from chiaki-ng" in [`VICE.md`](VICE.md).
 
@@ -65,7 +67,7 @@ More screens are in [`screenshots/`](screenshots/).
 
 ## Status
 
-Early. Built and played on macOS, on a Steam Deck and on Windows 11; built on Linux. The Windows build has been played on a PS5 over Wi-Fi with an NVIDIA GPU. Not yet tried with a controller in hand on Windows: the second step of button mapping and the automatic touchpad assignment. [`VICE.md`](VICE.md) has the details, the build steps and how the code is laid out.
+Early. Built and played on macOS, on a Steam Deck and on Windows 11; built on Linux. The macOS disk image has been started on the Mac that built it and not yet on another one. The Windows build has been played on a PS5 over Wi-Fi with an NVIDIA GPU. Not yet tried with a controller in hand on Windows: the second step of button mapping and the automatic touchpad assignment. [`VICE.md`](VICE.md) has the details, the build steps and how the code is laid out.
 
 ## Use your own console
 
