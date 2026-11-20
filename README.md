@@ -1,12 +1,98 @@
 # Project Vice
 
-Project Vice is a free, open-source Remote Play client. Your PS5 or PS4 runs the game; Project Vice streams it to a Windows PC, a Mac or a Steam Deck, at home or away from home, with a controller-first interface built for the couch.
+**Play GTA VI on your PC.** Your PS5 runs the game; Project Vice streams it to a Windows PC, a Mac or a Steam Deck and puts your graphics card to work on the picture. Free, open source, and built to feel like Vice City from the first screen.
+
+![GTA VI streamed through Project Vice, with the stream readout](screenshots/stream.jpg)
+
+**[Download for Windows, Mac and Steam Deck](../../releases)** · [Set-up guide](#set-up-step-by-step) · [Play away from home](#play-away-from-home)
+
+It works with every PS5 and PS4 game. GTA VI is the one it was dressed and tuned for.
+
+## GTA VI, streamed
+
+These three pictures are frames taken straight from a Project Vice stream of GTA VI running on a PS5, at 1080p.
+
+![GTA VI gameplay streamed through Project Vice](screenshots/gameplay-1.jpg)
+
+| | |
+| --- | --- |
+| ![GTA VI gameplay](screenshots/gameplay-2.jpg) | ![GTA VI gameplay](screenshots/gameplay-3.jpg) |
+
+The quick menu comes up over the game without leaving it: mode, upscaler, bitrate, picture size, the stats overlay, save the last 30 seconds, disconnect.
+
+![Quick menu over the game](screenshots/stream-quick.jpg)
+
+In the two pictures with the app's panels over the game, the game frame is a real capture and the numbers in the panels are sample values.
+
+## The Vice City look
+
+The whole app wears it: a sunset palette, the key art behind every screen, a bold wordmark, and tips and notices in the style of the game's own. It is driven with a controller from the couch; a keyboard or mouse works too.
 
 ![Home](screenshots/home.jpg)
 
-**On this page:** [Download](#download) · [What you need](#what-you-need) · [Set up, step by step](#set-up-step-by-step) · [Play away from home](#play-away-from-home) · [Steam Deck](#steam-deck) · [Shortcuts](#shortcuts) · [What it does](#what-it-does) · [If something goes wrong](#if-something-goes-wrong) · [Build it yourself](#build-it-yourself)
+| | |
+| --- | --- |
+| ![Connecting](screenshots/stream-loading.jpg) | ![Choose a mode](screenshots/mode.jpg) |
+| ![Notices](screenshots/toasts.jpg) | ![Settings](screenshots/settings.jpg) |
+
+## What makes it run cleaner
+
+Remote Play sends a compressed video of the game over your network. What you see depends on how fast and how well that video is decoded, enlarged and drawn, and on how the app copes when the network stumbles. This is what Project Vice does about each.
+
+### Your graphics card does the work
+
+- **Hardware decoding.** The video is decoded on the graphics card, not the processor: Vulkan video or Direct3D 11 on Windows, VideoToolbox on a Mac, Vulkan video or VA-API on a Steam Deck.
+- **Drawn with Vulkan.** Each frame goes to the screen through a Vulkan renderer, and the newest frame is always the one drawn; nothing waits in a queue. On a Mac the app carries its own MoltenVK, so this works with nothing else installed.
+- **RTX Video Super Resolution on Windows.** With an NVIDIA RTX card, the driver's own AI upscaler enlarges the 1080p stream to your monitor's size. Project Vice asks the driver for it directly, so no NVIDIA software ships with the app. It is sharper than the built-in scalers for about 7 ms more delay. Turn on "RTX Video Enhancement: Super Resolution" in the NVIDIA app, then choose RTX Video under Settings, Video, Upscaler.
+- **HDR from the console.** Choose "H265 with HDR" as the codec, with an HDR display and HDR turned on in the system.
+- **Two modes.** Game for the least delay, Quality for a sharper picture, remembered per game profile.
+
+### Less delay between your thumb and the screen
+
+- **Low-delay decoding:** the decoder hands over each frame without holding any back.
+- **Controller input is sent the moment it changes**, not on a timer.
+- **The stream's threads get raised priority**, and its packets are marked as priority traffic for routers that honour it.
+- **On Windows, for the length of a session:** 1 ms system timers, and Wi-Fi streaming mode, which turns off the Wi-Fi card's background scanning.
+
+### A connection that holds
+
+- **Connection check before you play:** 30 seconds of ping, jitter and packet loss to the console, with the Wi-Fi band and signal your computer reports.
+- **Adaptive bitrate:** when packets are being lost, the stream steps down instead of breaking up.
+- **Audio buffer sized to your network,** from the jitter the connection check measured.
+- **It tells you whose fault a stutter is.** The app counts network pauses separately from frames it dropped itself, and says so when the network keeps pausing.
+
+### You can see all of it
+
+- **Stats overlay** in three sizes: frame rate, bitrate, ping, loss, decode time, draw time, client delay, input delay, dropped frames and network pauses.
+- **The game's own frame rate**, shown beside the stream's. A game drawing 30 pictures a second inside a 60 fps stream reads "60 fps, Game 30 fps".
+- **A benchmark** that plays two measured sessions on your console, tuning off then on, and shows both.
+
+| | |
+| --- | --- |
+| ![Connection check](screenshots/check.jpg) | ![Benchmark](screenshots/benchmark.jpg) |
+
+### It feels like the console
+
+- **DualSense haptics and adaptive triggers** over USB; rumble on other controllers.
+- **Stick deadzones and response curve** per game profile.
+- **A controller with no touchpad gets one:** the View button sends the touchpad click.
+- **Replay:** save the last 30 seconds as an MP4.
+
+### What has been measured
+
+| Setup | What | Result |
+| --- | --- | --- |
+| Windows 11, RTX 5060 laptop, 1080p stream shown at 1440p | Edge sharpness (higher is sharper), one still screen | 352 with RTX Video; 259 with the Quality scaler; 197 with plain scaling |
+| Same | Cost of RTX Video | About 7 ms a frame; GPU load 42% against 19% |
+| M2 Pro MacBook, 5 GHz Wi-Fi, 1080p 60 fps | Decode, draw, whole client pipeline | About 3 ms, 0.5 ms, 8 to 12 ms with Vulkan (15 to 20 ms on the OpenGL fallback) |
+
+These are single measurements on those machines, not promises for yours. On that Mac the benchmark found no measurable difference between the speed switches on and off. Run the benchmark in the app to see what you get on yours.
+
+---
 
 ## Download
+
+**On this half of the page:** [Download](#download) · [What you need](#what-you-need) · [Set up, step by step](#set-up-step-by-step) · [Play away from home](#play-away-from-home) · [Steam Deck](#steam-deck) · [Shortcuts](#shortcuts) · [Everything it does](#everything-it-does) · [If something goes wrong](#if-something-goes-wrong) · [Build it yourself](#build-it-yourself)
 
 Every build is on the [Releases](../../releases) page. Pick the file for your device:
 
@@ -200,7 +286,7 @@ The app lists these in Settings, Shortcuts.
 | During play | Zoom the picture | Ctrl+Z | |
 | During play | Stretch the picture | Ctrl+S | |
 
-## What it does
+## Everything it does
 
 **Consoles**
 - Finds the PS4 and PS5 consoles on your network, pairs with the 8-digit code, wakes a console from rest mode and connects.
@@ -267,7 +353,7 @@ More screens are in [`screenshots/`](screenshots/).
 Early, and every build on the Releases page is a preview.
 
 - **Windows:** built and played on Windows 11 with an NVIDIA GPU and a PS5 over Wi-Fi. Not yet tried with a controller in hand: the second step of button mapping and the automatic touchpad assignment.
-- **Mac:** built and played on an Apple silicon Mac. The disk image has been started on the Mac that built it and not yet on another one.
+- **Mac:** built and played on an Apple silicon Mac. The disk image has been started on the Mac that built it and not yet on another one. GTA VI has been streamed from a PS5 to this build at 1080p; the gameplay pictures at the top are from that session.
 - **Steam Deck:** an earlier build was installed and played on a Steam Deck (SteamOS 3.9). The AppImage on the Releases page was built in a container, where it starts as far as setting up the renderer; it has not been run on a Deck yet.
 - **Away from home:** both ways use the upstream project's connection code. Neither has been tried from outside the home network with this build.
 

@@ -28,7 +28,7 @@ Every screen below is real QML bound to the existing backend (`Chiaki`, its sett
 
 Five upstream pages are not rewritten: all settings, display settings, placebo settings, button mapping and the Steam shortcut. They get the Vice frame and wallpaper (`+vice/DialogView.qml`), Vice buttons, drop-downs, toggles, sliders, radio buttons and text fields (`controls/+vice/`), and the Vice palette and font. The arrangement of their options is still upstream's, and a few controls they declare directly (tab bars, some check boxes) are Material controls in Vice colours.
 
-Screenshots of every screen, rendered from the preview, are in [`screenshots/`](screenshots/).
+Screenshots of every screen, rendered from the preview, are in [`screenshots/`](screenshots/). `gameplay-1.jpg` to `gameplay-3.jpg` are different: they are frames from a real stream of GTA VI from a PS5 to the Mac build (1080p, H265), taken from the app's own replay files. The stream screens (`stream*.jpg`) are preview renders with `gameplay-1.jpg` standing in for the video, so the game frame in them is real and the numbers and panels over it are the preview's sample data.
 
 ## Window, full screen and handhelds
 
@@ -48,6 +48,7 @@ Screenshots of every screen, rendered from the preview, are in [`screenshots/`](
 - **Controller name.** The footer names the controller. Windows reports every XInput pad as "XInput Controller"; the app reads the product name from the USB device (`vicePlatformControllerName`).
 - **Button mapping.** Two steps: press a button on the controller to pick it, then upstream's mapping page. A controller with no touchpad gets one assigned: View (Back) sends the touchpad click and View with Menu sends Create ("View button sends" in Settings, Input: auto, Create, touchpad). PlayStation pads and a Steam Deck are left as they are. The second step and the assignment have not been tried with a controller in hand.
 - **Steam Deck and other handhelds.** Detected from the built-in controls. Focus is always shown, text fields ask for the on-screen keyboard, the artwork is decoded smaller and the looks-only mask on the mode cards is skipped. The layout is checked at 1280×800 in the preview (`SIZE=1280x800 ./shots.sh deck deck-mode`) and the app has been played on a Deck.
+- **A console that is already streaming.** A console in a Remote Play session with another device answers a new request with "already in use". Upstream's session code retries a failed connection for 20 seconds with a few milliseconds between tries, which against that answer was 683 requests in one 20-second run. The app now stops at the first such answer and shows the failure (`vice hook` in `streamsession.cpp`). Other failures still retry as upstream does. The change has not been run against a console in use: the console was free again by the time it was built.
 
 ## What the engine measures and changes
 

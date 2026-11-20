@@ -184,7 +184,9 @@ Window {
             GradientStop { position: 0.45; color: "#F2B8A8" }
             GradientStop { position: 1; color: "#4B4763" }
         }
-        Text { anchors.centerIn: parent; text: "Preview placeholder for the video"; color: "#30FFFFFF"; font.pixelSize: 28 }
+        // A frame captured from a real stream stands in for the video. What is drawn over it is sample data.
+        Image { id: frame; anchors.fill: parent; source: "../../screenshots/gameplay-1.jpg"; fillMode: Image.PreserveAspectCrop; asynchronous: false }
+        Text { visible: frame.status !== Image.Ready; anchors.centerIn: parent; text: "Preview placeholder for the video"; color: "#30FFFFFF"; font.pixelSize: 28 }
     }
 
     Loader {

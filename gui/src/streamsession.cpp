@@ -2421,7 +2421,10 @@ void StreamSession::Event(ChiakiEvent *event)
 			emit ConnectedChanged();
 			break;
 		case CHIAKI_EVENT_QUIT:
-			if(!connected && !holepunch_session && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < SESSION_RETRY_SECONDS * 1000)
+			// vice hook: a console that is already streaming to another device will not accept this one
+			// however often it is asked, and the retry below asks every few milliseconds
+			if(!connected && !holepunch_session && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < SESSION_RETRY_SECONDS * 1000
+				&& event->quit.reason != CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_IN_USE)
 			{
 				QTimer::singleShot(SESSION_RETRY_SECONDS / 3, this, &StreamSession::Start);
 				return;
