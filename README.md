@@ -407,7 +407,7 @@ Early, and every build on the Releases page is a preview.
 
 - **Windows:** built and played on Windows 11 with an NVIDIA GPU and a PS5 over Wi-Fi. Not yet tried with a controller in hand: the second step of button mapping and the automatic touchpad assignment.
 - **Mac:** built and played on an Apple silicon Mac. The disk image has been started on the Mac that built it and not yet on another one. GTA VI has been streamed from a PS5 to this build at 1080p; the gameplay pictures at the top are from that session.
-- **Steam Deck:** an earlier build was installed and played on a Steam Deck (SteamOS 3.9). The AppImage on the Releases page was built in a container, where it starts as far as setting up the renderer; it has not been run on a Deck yet. The installer file was run in a Linux container, where it downloads the app and adds the menu and desktop entries; it has not been double-clicked on a Deck.
+- **Steam Deck:** the AppImage on the Releases page was installed on a Steam Deck (SteamOS 3.9.6) with the installer script and started from Steam in Gaming Mode: it draws with Vulkan, finds the console and refreshes the PSN sign-in. A stream from this build has not been run on the Deck yet (an earlier build was played there), and the installer file has not been double-clicked on a Deck: the script was run over SSH.
 - **Away from home:** both ways use the upstream project's connection code. Neither has been tried from outside the home network with this build.
 
 [`VICE.md`](VICE.md) has the details, what was measured and how the code is laid out.
