@@ -16,8 +16,6 @@ Every build is on the [Releases](../../releases) page. Pick the file for your de
 | Mac with Apple silicon (M1 or newer), macOS 26 or newer | `ProjectVice-<version>-arm64.dmg` |
 | Steam Deck, or a 64-bit Intel or AMD Linux PC | `ProjectVice-<version>-x86_64.AppImage` |
 
-While this repository is private, the Releases page answers "404, not found" unless you are signed in to GitHub with an account that has access to it.
-
 There is no build for Intel Macs. Already using chiaki-ng? Its paired consoles and settings can be carried over; see "Moving from chiaki-ng" in [`VICE.md`](VICE.md).
 
 ## What you need
@@ -248,7 +246,6 @@ More screens are in [`screenshots/`](screenshots/).
 
 | What you see | What to do |
 | --- | --- |
-| The Releases page says 404 | Sign in to GitHub with an account that has access to this repository. |
 | Windows: "Windows protected your PC" | Choose "More info", then "Run anyway". The installer is not signed. |
 | Mac: "Apple could not verify Project Vice" | System Settings, Privacy & Security, "Open Anyway". The app is not notarized. |
 | No console on the Home screen | Check the console is on or in rest mode and on the same network as the computer. Guest Wi-Fi networks usually keep devices apart. Otherwise choose "Add console", then "Enter an address instead". |
