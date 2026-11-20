@@ -973,13 +973,20 @@ Item {
     }
 
     // ---- upstream: in-stream display and placebo settings panels -------------
+    // vice: upstream gives these a fixed 1200 x 500 to 650 box. That neither fits a small
+    // window nor grows with a large one, so the page sat at one size with the game around
+    // it. They take the window's width and enough of its height for their contents; the
+    // game stays in view below, which is what these picture settings are adjusted against.
+    function streamPanelHeight(designed) {
+        return Math.min(height, Math.max(Theme.px(designed), Math.round(height * 0.62)));
+    }
 
     Rectangle {
         id: placeboSettingsRect
         opacity: 0.0
         visible: opacity && !useSeparateStreamSettingsWindows
-        height: 650
-        width: 1200
+        height: root.streamPanelHeight(650)   // vice
+        width: parent.width                    // vice
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         color: Material.background
@@ -994,8 +1001,8 @@ Item {
         opacity: 0.0
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
-        height: 500
-        width: 1200
+        height: root.streamPanelHeight(500)   // vice
+        width: parent.width                    // vice
         visible: opacity && !useSeparateStreamSettingsWindows
         color: Material.background
         Loader {
@@ -1009,8 +1016,8 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         opacity: 0.0
-        height: 600
-        width: 1200
+        height: root.streamPanelHeight(600)   // vice
+        width: parent.width                    // vice
         visible: opacity && !useSeparateStreamSettingsWindows
         color: Material.background
         Loader {
