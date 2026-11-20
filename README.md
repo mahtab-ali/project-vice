@@ -78,11 +78,36 @@ Remote Play sends a compressed video of the game over your network. What you see
 - **A controller with no touchpad gets one:** the View button sends the touchpad click.
 - **Replay:** save the last 30 seconds as an MP4.
 
+### GTA VI on a Windows PC, measured
+
+This is a frame of GTA VI from a Project Vice stream on Windows 11, with the app's own stats overlay across the top. Nothing in it is a sample value: the bar shows what the app measured at that moment.
+
+![GTA VI streamed to Windows through Project Vice, with the stats overlay showing live measurements](screenshots/windows-gameplay.jpg)
+
+Read from that bar and from the same session: the stream arrives at 60 frames a second while the game itself draws 30; the round trip to the console is 4 ms; no packets are lost; a frame is decoded in 0.6 ms and drawn in 0.4 ms; and from a frame arriving to it being on screen takes 4 ms.
+
+| What | Game mode | Quality mode | Quality mode with RTX Video |
+| --- | --- | --- | --- |
+| Edge sharpness of the picture (higher is sharper) | 193 | 259 | 352 |
+| Decoding a frame | 0.6 ms | 0.7 ms | not measured |
+| Drawing a frame, scaling included | 0.4 ms | 0.9 ms | about 7 ms more than Quality mode |
+| Frame arriving to frame on screen | 4 ms | 5 ms | not measured |
+| Controller change to it being sent | 0.1 ms | 0.1 ms | not measured |
+| Graphics card load | not measured | 16% | 42% |
+
+The machine: a laptop with an NVIDIA RTX 5060 and a 2560 x 1600 screen, Windows 11, a PS5 on the same 5 GHz Wi-Fi network, GTA VI, a 1080p 60 fps HEVC stream shown at 2560 x 1440.
+
+The sharpness figure is the variance of the Laplacian over the same patch of the game's pause menu, captured from the screen under each setting. Here is that patch, pixel for pixel and enlarged three times:
+
+![The same patch of the game's pause menu in Game mode, Quality mode and with RTX Video Super Resolution](screenshots/windows-upscaling.png)
+
+What this does and does not show. The sharpness comparison is one still screen in one game, and the three captures come from separate sessions on the same day. Still text flatters a sharpening upscaler; the difference in motion has not been measured. The timings are what the overlay showed in a quiet indoor scene, not averages over a play session. The game drawing 30 pictures a second is the game's own choice on the console, which no client can raise.
+
 ### What has been measured
 
 | Setup | What | Result |
 | --- | --- | --- |
-| Windows 11, RTX 5060 laptop, 1080p stream shown at 1440p | Edge sharpness (higher is sharper), one still screen | 352 with RTX Video; 259 with the Quality scaler; 197 with plain scaling |
+| Windows 11, RTX 5060 laptop, 1080p stream shown at 1440p | Edge sharpness (higher is sharper), one still screen | 352 with RTX Video; 259 with the Quality scaler; 193 in Game mode; 197 with Direct3D's plain scaling |
 | Same | Cost of RTX Video | About 7 ms a frame; GPU load 42% against 19% |
 | M2 Pro MacBook, 5 GHz Wi-Fi, 1080p 60 fps | Decode, draw, whole client pipeline | About 3 ms, 0.5 ms, 8 to 12 ms with Vulkan (15 to 20 ms on the OpenGL fallback) |
 
