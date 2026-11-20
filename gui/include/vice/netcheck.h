@@ -7,16 +7,26 @@
 #include <QElapsedTimer>
 #include <QHostAddress>
 #include <QObject>
+#include <QTcpSocket>
 #include <QTimer>
 #include <QUdpSocket>
 #include <QVariantList>
 
 /**
- * Measures round trips of the console's own discovery request ("SRCH"), the
- * same request the app already sends to find consoles. One probe every
- * intervalMs; a probe with no reply before the next one counts as lost.
- * The time includes the console's work to answer, so it reads slightly
- * higher than an ICMP ping. Exposed to QML as vice.backend/NetCheck.
+ * Two probes every intervalMs.
+ *
+ * Loss comes from the console's own discovery request ("SRCH"), the request the
+ * app already sends to find consoles: a probe with no reply before the next one
+ * counts as lost.
+ *
+ * Ping and jitter come from timing a TCP connection to the port a session is
+ * requested on. The discovery reply cannot be used for them: a PS5 takes about
+ * 100 ms to answer it however good the network is (104 ms was measured on a link
+ * whose real round trip was 3 ms, which made a perfect connection read as "expect
+ * stutter"). A TCP connection is answered by the console's network stack at once,
+ * open or refused, so its time is the network's. If the console does not answer
+ * TCP at all, the discovery times are used as before.
+ * Exposed to QML as vice.backend/NetCheck.
  */
 class ViceNetCheck : public QObject
 {
@@ -61,6 +71,9 @@ class ViceNetCheck : public QObject
 		void probe();
 		void readReplies();
 		void closeProbe();
+		void tcpProbe();
+		void tcpDone(int index, bool answered);
+		const QList<double> &timed() const;
 		static QString detectLink();
 
 		QUdpSocket socket;
@@ -70,6 +83,10 @@ class ViceNetCheck : public QObject
 		quint16 port = 0;
 		QByteArray request;
 		QList<double> rtts;
+		// One per probe, the TCP round trip in ms; -1 where there was none
+		QList<double> tcp_rtts;
+		QTcpSocket *tcp = nullptr;
+		QElapsedTimer tcp_clock;
 		bool awaiting = false;
 		int probes_expected = 0;
 		QString link_type = QStringLiteral("unknown");

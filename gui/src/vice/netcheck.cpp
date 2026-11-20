@@ -43,6 +43,7 @@ void ViceNetCheck::start(const QString &host, bool ps5, int seconds)
 {
 	stop();
 	rtts.clear();
+	tcp_rtts.clear();
 	awaiting = false;
 	probes_expected = std::max(1, seconds * 1000 / intervalMs);
 	link_type = detectLink();
@@ -74,9 +75,62 @@ void ViceNetCheck::stop()
 		return;
 	timer.stop();
 	socket.close();
+	if(tcp)
+	{
+		tcp->abort();
+		tcp->deleteLater();
+		tcp = nullptr;
+	}
 	awaiting = false;
 	emit runningChanged();
 	emit changed();
+}
+
+// The port a session is requested on, the same for a PS4 and a PS5
+static const quint16 session_port = 9295;
+
+void ViceNetCheck::tcpProbe()
+{
+	// The last one never answered: leave its slot empty and move on
+	if(tcp)
+	{
+		tcp->abort();
+		tcp->deleteLater();
+		tcp = nullptr;
+	}
+	const int index = tcp_rtts.size();
+	tcp_rtts.append(-1.0);
+	tcp = new QTcpSocket(this);
+	QTcpSocket *mine = tcp;
+	connect(mine, &QTcpSocket::connected, this, [this, mine, index]() { if(mine == tcp) tcpDone(index, true); });
+	connect(mine, &QTcpSocket::errorOccurred, this, [this, mine, index](QAbstractSocket::SocketError error) {
+		// A refusal is the console answering too: it came back over the same path
+		if(mine == tcp)
+			tcpDone(index, error == QAbstractSocket::ConnectionRefusedError);
+	});
+	tcp_clock.restart();
+	mine->connectToHost(address, session_port);
+}
+
+void ViceNetCheck::tcpDone(int index, bool answered)
+{
+	if(answered && index >= 0 && index < tcp_rtts.size())
+		tcp_rtts[index] = tcp_clock.nsecsElapsed() / 1e6;
+	if(tcp)
+	{
+		tcp->abort();
+		tcp->deleteLater();
+		tcp = nullptr;
+	}
+	emit changed();
+}
+
+// The times ping and jitter are worked out from: the TCP ones once the console has
+// answered a few, the discovery ones until then or if it never does
+const QList<double> &ViceNetCheck::timed() const
+{
+	const int answered = std::count_if(tcp_rtts.begin(), tcp_rtts.end(), [](double v) { return v >= 0; });
+	return answered >= 3 ? tcp_rtts : rtts;
 }
 
 void ViceNetCheck::closeProbe()
@@ -95,6 +149,12 @@ void ViceNetCheck::probe()
 	{
 		timer.stop();
 		socket.close();
+		if(tcp)
+		{
+			tcp->abort();
+			tcp->deleteLater();
+			tcp = nullptr;
+		}
 		emit runningChanged();
 		emit changed();
 		emit finished();
@@ -107,6 +167,7 @@ void ViceNetCheck::probe()
 	awaiting = socket.writeDatagram(request, address, port) == request.size();
 	if(!awaiting)
 		rtts.append(-1.0);
+	tcpProbe();
 	emit changed();
 }
 
@@ -132,15 +193,24 @@ int ViceNetCheck::received() const
 QVariantList ViceNetCheck::samples() const
 {
 	QVariantList out;
-	for(double v : rtts)
-		out.append(v);
+	const QList<double> &series = timed();
+	for(int i = 0; i < rtts.size(); i++)
+	{
+		if(rtts.at(i) < 0)
+			out.append(-1.0); // lost
+		else if(&series == &rtts)
+			out.append(rtts.at(i));
+		else if(i < series.size() && series.at(i) >= 0)
+			out.append(series.at(i));
+		// answered, but not timed over TCP: nothing to plot for this probe
+	}
 	return out;
 }
 
 double ViceNetCheck::ping() const
 {
 	QList<double> replies;
-	for(double v : rtts)
+	for(double v : timed())
 		if(v >= 0)
 			replies.append(v);
 	if(replies.isEmpty())
@@ -153,7 +223,7 @@ double ViceNetCheck::jitter() const
 {
 	double total = 0, previous = -1;
 	int pairs = 0;
-	for(double v : rtts)
+	for(double v : timed())
 	{
 		if(v < 0)
 			continue;
