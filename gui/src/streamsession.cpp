@@ -419,6 +419,12 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	{
 #endif
 		ffmpeg_decoder = new ChiakiFfmpegDecoder;
+#ifdef CHIAKI_VICE_UI
+		// vice hook: RTX Video Super Resolution needs the decoder on the NVIDIA card
+		AVBufferRef *vice_rtx_device = nullptr;
+		if(connect_info.hw_decoder == "d3d11va" && !connect_info.hw_device_ctx)
+			vice_rtx_device = viceRtxVideoDevice();
+#endif
 		ChiakiLogSniffer sniffer;
 		chiaki_log_sniffer_init(&sniffer, CHIAKI_LOG_ALL, GetChiakiLog());
 		err = chiaki_ffmpeg_decoder_init(ffmpeg_decoder,
@@ -426,7 +432,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 				chiaki_target_is_ps5(connect_info.target) ? connect_info.video_profile.codec : CHIAKI_CODEC_H264,
 				connect_info.video_profile.max_fps,
 				connect_info.hw_decoder.isEmpty() ? NULL : connect_info.hw_decoder.toUtf8().constData(),
+#ifdef CHIAKI_VICE_UI
+				vice_rtx_device ? vice_rtx_device : connect_info.hw_device_ctx, FfmpegFrameCb, this);
+		if(vice_rtx_device)
+			av_buffer_unref(&vice_rtx_device); // the decoder holds its own reference
+#else
 				connect_info.hw_device_ctx, FfmpegFrameCb, this);
+#endif
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			QString log = QString::fromUtf8(chiaki_log_sniffer_get_buffer(&sniffer));

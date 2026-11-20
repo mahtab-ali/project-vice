@@ -7,6 +7,7 @@
 #define VICE_ENGINE_H
 
 #include <atomic>
+#include <limits>
 #include <QObject>
 #include <QString>
 #include <QTimer>
@@ -60,6 +61,8 @@ class ViceEngine : public QObject
 
 	// Statistics of the running session, refreshed twice a second
 	Q_PROPERTY(double fps READ fps NOTIFY statsChanged)
+	// Frames a second that carried a new picture: a 30 fps game in a 60 fps stream reads 30 here
+	Q_PROPERTY(double uniqueFps READ uniqueFps NOTIFY statsChanged)
 	Q_PROPERTY(double decodeMs READ decodeMs NOTIFY statsChanged)
 	Q_PROPERTY(double renderMs READ renderMs NOTIFY statsChanged)
 	// From an encoded frame arriving to that frame being drawn: the client's share of the delay
@@ -75,6 +78,9 @@ class ViceEngine : public QObject
 
 	// Replay: the last seconds of the stream as it arrived, kept in memory
 	Q_PROPERTY(bool replayEnabled READ replayEnabled WRITE setReplayEnabled NOTIFY replayChanged)
+	// RTX Video Super Resolution through the graphics driver (src/vice/rtxvideo.cpp); used from the next connection
+	Q_PROPERTY(bool rtxSuperResolution READ rtxSuperResolution WRITE setRtxSuperResolution NOTIFY tuningChanged)
+	Q_PROPERTY(bool rtxPossible READ rtxPossible CONSTANT)
 	Q_PROPERTY(double replaySeconds READ replaySeconds NOTIFY statsChanged)
 	Q_PROPERTY(bool replaySaving READ replaySaving NOTIFY replayChanged)
 
@@ -107,6 +113,7 @@ class ViceEngine : public QObject
 		void setViewAsTouchpad(bool on);
 
 		double fps() const { return stat_fps; }
+		double uniqueFps() const { return stat_unique_fps; }
 		double decodeMs() const { return stat_decode; }
 		double renderMs() const { return stat_render; }
 		double pipelineMs() const { return stat_pipeline; }
@@ -117,6 +124,9 @@ class ViceEngine : public QObject
 
 		bool replayEnabled() const { return replay_enabled; }
 		void setReplayEnabled(bool on);
+		bool rtxSuperResolution() const { return rtx_vsr.load(); }
+		void setRtxSuperResolution(bool on);
+		bool rtxPossible() const;
 		double replaySeconds() const { return stat_replay_seconds; }
 		bool replaySaving() const { return replay_saving; }
 
@@ -155,10 +165,12 @@ class ViceEngine : public QObject
 		double left_deadzone = 0.0, right_deadzone = 0.0;
 		int stick_curve = 0;
 		std::atomic<bool> view_as_touchpad{false};
+		double stat_unique_fps = std::numeric_limits<double>::quiet_NaN();
 		double stat_fps, stat_decode, stat_render, stat_pipeline, stat_rtt, stat_input, stat_replay_seconds = 0;
 		int stat_stutters = 0, stat_stalls = 0;
 		// Off unless asked for: it makes the console send a full picture every 15 seconds
 		bool replay_enabled = false, replay_saving = false;
+		std::atomic<bool> rtx_vsr{false};
 		QString wifi_band;
 		int wifi_signal = -1;
 		QTimer stats_timer;
@@ -173,6 +185,18 @@ void vicePlatformSessionEnd();
 bool vicePlatformSystemTuningSupported();
 // band: "2.4", "5", "6" or empty; signal 0..100 or -1. Returns false when not on Wi-Fi or unknown.
 bool vicePlatformWifi(QString *band, int *signal);
+
+// RTX Video Super Resolution (rtxvideo.cpp). Given a frame the Direct3D 11 decoder produced,
+// returns it enlarged to fit the window as an ordinary frame the caller owns, or null when
+// the frame should go on as it is (feature off, other decoder, driver without it).
+struct AVFrame;
+AVFrame *viceRtxVideoProcess(const AVFrame *frame, int window_w, int window_h);
+// The Direct3D 11 decoding device on the NVIDIA card, for the caller to hand to the decoder
+// and then release; null when the feature is off or there is no such card.
+struct AVBufferRef;
+AVBufferRef *viceRtxVideoDevice();
+void viceRtxVideoSessionEnd();
+bool viceRtxVideoPossible();
 // The product name a USB controller reports about itself, where the system's controller
 // layer hides it (Windows shows every XInput pad as "XInput Controller"). Empty if unknown.
 QString vicePlatformControllerName(quint16 vendor, quint16 product);

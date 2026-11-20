@@ -71,7 +71,8 @@ if(CHIAKI_ENABLE_VICE_UI)
 		src/vice/platform.cpp
 		include/vice/engine.h
 		src/vice/engine.cpp
-		src/vice/engine_platform.cpp)
+		src/vice/engine_platform.cpp
+		src/vice/rtxvideo.cpp)
 	if(APPLE)
 		list(APPEND SOURCE_FILES src/vice/wifi_mac.mm)
 	endif()
@@ -227,7 +228,7 @@ if(CHIAKI_ENABLE_VICE_UI)
 			message(WARNING "MoltenVK not found: on macOS the app will fall back to OpenGL, which is slower and less even. brew install molten-vk")
 		endif()
 	elseif(WIN32)
-		target_link_libraries(chiaki winmm wlanapi avrt qwave ws2_32 setupapi)
+		target_link_libraries(chiaki winmm wlanapi avrt qwave ws2_32 setupapi dxgi dxguid)
 	endif()
 	set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE_BUNDLE_NAME "Project Vice"

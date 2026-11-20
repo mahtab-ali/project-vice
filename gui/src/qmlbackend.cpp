@@ -1,3 +1,6 @@
+#ifdef CHIAKI_VICE_UI
+#include "vice/engine.h" // vice hook
+#endif
 #include "qmlbackend.h"
 #include "qmlsettings.h"
 #include "qmlmainwindow.h"
@@ -1035,6 +1038,14 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             session_info.hw_decoder.clear();
         }
     };
+#ifdef CHIAKI_VICE_UI
+    // vice hook: RTX Video Super Resolution works on frames the Direct3D 11 decoder produced
+    if(ViceEngine::instance()->rtxSuperResolution() && !use_opengl_renderer && availableDecoders.contains("d3d11va"))
+    {
+        qCInfo(chiakiGui) << "RTX Video Super Resolution is on: decoding with d3d11va";
+        session_info.hw_decoder = "d3d11va";
+    }
+#endif
     if(session_info.hw_decoder == "auto")
     {
         session_info.hw_decoder = QString();
@@ -1136,6 +1147,17 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             pending_recovered_frame.storeRelaxed(1);
 
         const qint64 prepare_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+#ifdef CHIAKI_VICE_UI
+        // vice hook: RTX Video Super Resolution enlarges the Direct3D 11 frame to the window's
+        // size here, in place of the plain copy to memory that prepareFrameForPresentation makes
+        if (window) {
+            const qreal ratio = window->devicePixelRatio();
+            if (AVFrame *enlarged = viceRtxVideoProcess(frame.frame, qRound(window->width() * ratio), qRound(window->height() * ratio))) {
+                av_frame_free(&frame.frame);
+                frame.frame = enlarged;
+            }
+        }
+#endif
         if (!prepareFrameForPresentation(frame, use_opengl_renderer))
         {
             av_frame_free(&frame.frame);

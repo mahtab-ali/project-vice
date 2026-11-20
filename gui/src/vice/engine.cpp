@@ -57,6 +57,8 @@ struct State
 	qint64 last_delivery_us = 0;
 	qint64 last_drawn_us = 0;
 	std::deque<qint64> deliveries;
+	// Sizes of the last frames as they arrived, to tell repeated pictures by
+	std::deque<size_t> frame_sizes;
 	std::deque<qint64> stutters;
 	std::deque<qint64> stalls;
 	std::deque<Timed> decode, render, pipeline;
@@ -338,6 +340,14 @@ bool videoSample(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_
 		g.stalls.push_back(now);
 	}
 
+	// Kept for the game's own frame rate (see the stats update)
+	{
+		QMutexLocker locker(&g.mutex);
+		g.frame_sizes.push_back(buf_size);
+		if(g.frame_sizes.size() > 120)
+			g.frame_sizes.pop_front();
+	}
+
 	if(engine->replayEnabled() && decoder->av_codec)
 	{
 		const AVCodecID codec = decoder->av_codec->id;
@@ -412,6 +422,7 @@ void viceSessionCreated(ChiakiSession *session, ChiakiFfmpegDecoder *decoder)
 		g.last_delivery_us = 0;
 		g.last_drawn_us = 0;
 		g.deliveries.clear();
+		g.frame_sizes.clear();
 		g.stutters.clear();
 		g.stalls.clear();
 		g.decode.clear();
@@ -445,6 +456,7 @@ void viceSessionDestroyed(ChiakiSession *session)
 	clearReplay();
 	locker.unlock();
 	vicePlatformSessionEnd();
+	viceRtxVideoSessionEnd();
 }
 
 void viceFrameDelivered()
@@ -563,6 +575,7 @@ ViceEngine::ViceEngine(QObject *parent) : QObject(parent),
 	thread_priority = s.value(QStringLiteral("thread_priority"), true).toBool();
 	system_tuning = s.value(QStringLiteral("system_tuning"), true).toBool();
 	replay_enabled = s.value(QStringLiteral("replay_enabled"), false).toBool();
+	rtx_vsr = s.value(QStringLiteral("rtx_vsr"), false).toBool();
 	left_deadzone = std::clamp(s.value(QStringLiteral("left_deadzone"), 0.0).toDouble(), 0.0, 0.5);
 	right_deadzone = std::clamp(s.value(QStringLiteral("right_deadzone"), 0.0).toDouble(), 0.0, 0.5);
 	stick_curve = std::clamp(s.value(QStringLiteral("stick_curve"), 0).toInt(), 0, 2);
@@ -686,6 +699,19 @@ void ViceEngine::setStickCurve(int v)
 	emit sticksChanged();
 }
 
+void ViceEngine::setRtxSuperResolution(bool on)
+{
+	if(rtx_vsr.exchange(on) == on)
+		return;
+	save("rtx_vsr", on);
+	emit tuningChanged();
+}
+
+bool ViceEngine::rtxPossible() const
+{
+	return viceRtxVideoPossible();
+}
+
 void ViceEngine::setReplayEnabled(bool on)
 {
 	if(replay_enabled == on)
@@ -708,7 +734,7 @@ void ViceEngine::refreshStats()
 	{
 		if(std::isnan(stat_fps) && std::isnan(stat_rtt) && stat_replay_seconds == 0)
 			return;
-		stat_fps = stat_decode = stat_render = stat_pipeline = stat_rtt = stat_input = not_measured;
+		stat_fps = stat_unique_fps = stat_decode = stat_render = stat_pipeline = stat_rtt = stat_input = not_measured;
 		stat_stutters = stat_stalls = 0;
 		stat_replay_seconds = 0;
 		locker.unlock();
@@ -728,6 +754,27 @@ void ViceEngine::refreshStats()
 
 	// Frames in the last two seconds; nothing until the first frame has come
 	stat_fps = g.last_delivery_us > 0 ? g.deliveries.size() / 2.0 : not_measured;
+	// The game's own frame rate. A game drawing 30 pictures a second in a 60 fps stream has each
+	// one sent twice. The console's encoder does not make the repeat tiny (it spends a little on
+	// sharpening it), but it is reliably much smaller than the new pictures either side of it.
+	// So: the share of recent frames that sit well below both neighbours. Measured on a PS5,
+	// repeats came to about 40% of their neighbours' size, frame after frame.
+	if(g.last_delivery_us > 0 && g.frame_sizes.size() >= 62)
+	{
+		const size_t end = g.frame_sizes.size() - 1, begin = end - 60;
+		int repeats = 0;
+		for(size_t i = begin; i < end; i++)
+		{
+			const double around = (static_cast<double>(g.frame_sizes[i - 1]) + static_cast<double>(g.frame_sizes[i + 1])) / 2.0;
+			if(static_cast<double>(g.frame_sizes[i]) < around * 0.8)
+				repeats++;
+		}
+		const double share = repeats / 60.0;
+		// Every other frame a repeat is the common case; quiet scenes blur a few of them, so it is held at half
+		stat_unique_fps = share >= 0.4 ? stat_fps / 2.0 : stat_fps * (1.0 - share);
+	}
+	else
+		stat_unique_fps = g.last_delivery_us > 0 ? stat_fps : not_measured;
 	stat_decode = medianOf(g.decode);
 	stat_render = medianOf(g.render);
 	stat_pipeline = medianOf(g.pipeline);

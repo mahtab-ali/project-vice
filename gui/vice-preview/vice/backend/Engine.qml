@@ -16,9 +16,12 @@ QtObject {
     property real rightDeadzone: 0
     property int stickCurve: 0
     property bool viewAsTouchpad: false
+    property bool rtxSuperResolution: false
+    readonly property bool rtxPossible: false
 
     property bool streaming: false
     readonly property real fps: streaming ? 59.8 : NaN
+    property real uniqueFps: streaming ? 30.1 : NaN
     readonly property real decodeMs: streaming ? 4.6 : NaN
     readonly property real renderMs: streaming ? 9.2 : NaN
     readonly property real pipelineMs: streaming ? 15.8 : NaN

@@ -71,6 +71,8 @@ Rectangle {
             font.pixelSize: overlay.full ? Theme.px(28) : Theme.px(14)
             font.weight: Theme.weightDisplay
         }
+        // What the game is really drawing: below the stream's rate when pictures repeat
+        Stat { tier: 0; label: qsTr("Game"); value: Vice.valueText(Engine.uniqueFps, "", 0) + " " + qsTr("fps") }
         Stat { tier: 1; label: qsTr("Mbps"); value: overlay.session ? Vice.valueText(overlay.session.measuredBitrate, "", 1) : "—" }
         Stat { tier: 0; label: qsTr("Ping"); value: Vice.valueText(Engine.rttMs, " ms", 0) }
         Stat { tier: 1; label: qsTr("Loss"); value: overlay.session ? Vice.valueText(overlay.session.averagePacketLoss * 100, "%", 1) : "—" }

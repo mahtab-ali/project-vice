@@ -28,7 +28,7 @@ Already using chiaki-ng? Its paired consoles and settings can be carried over; s
 
 **While you play**
 - A quick menu on one compact panel: mode, upscaler, bitrate, volume, microphone, picture size (fit, zoom, stretch), the stats overlay and its size, save the last 30 seconds, resume, disconnect.
-- A stats overlay in three sizes, from everything (frame rate, bitrate, ping, loss, decode, render, client delay, input delay, dropped frames, network pauses) down to frame rate and ping.
+- A stats overlay in three sizes, from everything (frame rate, bitrate, ping, loss, decode, render, client delay, input delay, dropped frames, network pauses) down to frame rate and ping. It shows the game's own frame rate beside the stream's: a game drawing 30 pictures a second in a 60 fps stream reads "60 fps, Game 30 fps".
 - Replay: keep the last 30 seconds in memory and save them as an MP4.
 - Adaptive bitrate that steps down when the connection cannot carry the stream.
 - Notices over the game for an unstable connection, a controller that disconnects and a network that keeps pausing.
@@ -44,6 +44,7 @@ Already using chiaki-ng? Its paired consoles and settings can be carried over; s
 
 **Performance**
 - Hardware video decoding, drawn with Vulkan (OpenGL as a fallback).
+- On Windows with an NVIDIA RTX card: RTX Video Super Resolution as the upscaler, through the graphics driver, with no NVIDIA software shipped. Sharper than the built-in scalers, for about 7 ms more delay. Turn on "RTX Video Enhancement: Super Resolution" in the NVIDIA app first.
 - Low-delay decoding, raised priority for the stream's threads and priority marking on stream packets.
 - On Windows, for the length of a session: 1 ms timers and Wi-Fi streaming mode with background scanning off.
 - A benchmark that plays two measured sessions, tuning off then on, and shows both.
@@ -62,7 +63,7 @@ More screens are in [`screenshots/`](screenshots/).
 
 ## Not available yet
 
-- **RTX Video upscaling and HDR conversion.** They need NVIDIA's RTX Video SDK, which is not part of this build; the app lists them as unavailable. HDR from the console itself is available: choose "H265 with HDR" as the codec, with an HDR display and HDR turned on in the system.
+- **RTX Video HDR conversion.** Turning a normal picture into HDR with an NVIDIA card is not built; the app lists it as unavailable. HDR from the console itself is available: choose "H265 with HDR" as the codec, with an HDR display and HDR turned on in the system.
 - **Reading a third-party controller's own touchpad or back paddles on Windows.** In PC (XInput) mode the controller does not report them. Use the controller's PlayStation mode if it has one.
 
 ## Status

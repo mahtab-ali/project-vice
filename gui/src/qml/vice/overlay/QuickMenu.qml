@@ -185,7 +185,7 @@ FocusScope {
                     size: "sm"
                     implicitHeight: menu.controlHeight
                     font.pixelSize: menu.smallText
-                    text: qsTr("Built-in") + "  ›"
+                    text: (Engine.rtxSuperResolution ? qsTr("RTX Video") : qsTr("Built-in")) + "  ›"
                     // RTX Video is not part of this build; the built-in scalers have their own page
                     onTriggered: Chiaki.window.videoPreset === 5 ? menu.placeboSettingsRequested() : menu.displaySettingsRequested()
                     Accessible.name: qsTr("Upscaler and picture settings")
